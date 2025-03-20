@@ -174,10 +174,10 @@ sed -i "s/default  = 32,/default  = $numDest,/" project-spec/meta-user/recipes-a
 ##############################################################################
 
 # Add rogue AxiVersion Dump application
-# petalinux-create apps --template install -n axiversiondump
-# echo CONFIG_axiversiondump=y >> project-spec/configs/rootfs_config
-# cp -rf $axi_soc_7000_core/petalinux-apps/axiversiondump project-spec/meta-user/recipes-apps/.
-# echo IMAGE_INSTALL:append = \" axiversiondump\" >> build/conf/local.conf
+petalinux-create apps --template install -n axiversiondump
+echo CONFIG_axiversiondump=y >> project-spec/configs/rootfs_config
+cp -rf $axi_soc_7000_core/petalinux-apps/axiversiondump project-spec/meta-user/recipes-apps/.
+echo IMAGE_INSTALL:append = \" axiversiondump\" >> build/conf/local.conf
 
 ##############################################################################
 
