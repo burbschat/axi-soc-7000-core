@@ -57,7 +57,6 @@ echo "Number of DEST per lane: $numDest";
 echo "Number of DMA TX Buffers: $dmaTxBuffCount";
 echo "Number of DMA RX Buffers: $dmaRxBuffCount";
 echo "DMA Buffer Size: $dmaBuffSize Bytes";
-echo "Include RFDC utility: $rfdc";
 echo "$axi_soc_7000_core"
 echo "$aes_stream_drivers"
 
