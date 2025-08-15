@@ -37,7 +37,9 @@ entity AxiSoc7000Cpu is
         FIXED_IO_ddr_vrp  : inout std_logic;
         FIXED_IO_ps_srstb : inout std_logic;
         FIXED_IO_ps_clk   : inout std_logic;
-        FIXED_IO_ps_porb  : inout std_logic
+        FIXED_IO_ps_porb  : inout std_logic;
+        -- Global pl clock
+        pl_clk            : in    std_logic
         );
 end entity AxiSoc7000Cpu;
 
@@ -66,7 +68,9 @@ architecture mapping of AxiSoc7000Cpu is
             FIXED_IO_ddr_vrp  : inout std_logic;
             FIXED_IO_ps_srstb : inout std_logic;
             FIXED_IO_ps_clk   : inout std_logic;
-            FIXED_IO_ps_porb  : inout std_logic
+            FIXED_IO_ps_porb  : inout std_logic;
+            -- Global pl clock
+            pl_clk            : in    std_logic
             );
     end component AxiSoc7000CpuCore;
 
@@ -95,7 +99,9 @@ begin
             FIXED_IO_mio(53 downto 0) => FIXED_IO_mio(53 downto 0),
             FIXED_IO_ps_clk           => FIXED_IO_ps_clk,
             FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
-            FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb
+            FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
+            -- Global pl clock
+            pl_clk                    => pl_clk
             );
 
 end architecture mapping;
