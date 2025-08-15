@@ -40,11 +40,18 @@ entity AxiSoc7000Core is
         FIXED_IO_ps_clk   : inout std_logic;
         FIXED_IO_ps_porb  : inout std_logic;
         -- Global pl clock
-        pl_clk            : in    std_logic
+        pl_clk            : in    std_logic;
+        -- Reset
+        reset             : in    std_logic
         );
 end entity AxiSoc7000Core;
 
 architecture mapping of AxiSoc7000Core is
+
+    signal regReadMaster  : AxiLiteReadMasterType;
+    signal regReadSlave   : AxiLiteReadSlaveType;
+    signal regWriteMaster : AxiLiteWriteMasterType;
+    signal regWriteSlave  : AxiLiteWriteSlaveType;
 
 begin
 
@@ -79,7 +86,14 @@ begin
                 FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
                 FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
                 -- Global pl clock
-                pl_clk                    => pl_clk
+                pl_clk                    => pl_clk,
+                -- Master AXI-Lite Interface
+                regReadMaster             => regReadMaster,
+                regReadSlave              => regReadSlave,
+                regWriteMaster            => regWriteMaster,
+                regWriteSlave             => regWriteSlave,
+                -- Reset
+                reset_l                   => not reset  -- Convert to active low reset
                 );
 
     end generate;
