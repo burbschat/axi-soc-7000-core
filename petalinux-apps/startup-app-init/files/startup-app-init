@@ -1,4 +1,6 @@
 #!/bin/sh
+## TODO: THIS FILE DEFINETELY NEED SOME WORK!
+## SEE BOOT LOG TO FIND OUT WHAT GOES WRONG.
 ##############################################################################
 ## This file is part of 'axi-soc-ultra-plus-core'.
 ## It is subject to the license terms in the LICENSE.txt file found in the
