@@ -102,11 +102,12 @@ fi
 if [ -f "/boot/system.bit" ]
 then
    # fpgautil is "flaky" command and sometimes needs multiple retries to be successful
-   while [ ! -z "$(fpgautil -b /boot/system.bit | grep failed)" ]
-   do
-      sleep 1
-   done
-   echo "/sys/class/fpga_manager/fpga0/state: $(cat /sys/class/fpga_manager/fpga0/state)"
+   # while [ ! -z "$(fpgautil -b /boot/system.bit | grep failed)" ]
+   # do
+   #    sleep 1
+   # done
+   # echo "/sys/class/fpga_manager/fpga0/state: $(cat /sys/class/fpga_manager/fpga0/state)"
+   fpgautil -b /boot/system.bit
 fi
 
 # Load custom kernel driver
