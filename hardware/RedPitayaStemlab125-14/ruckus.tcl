@@ -13,8 +13,8 @@ loadSource -lib axi_soc_ultra_plus_core -dir "$::DIR_PATH/rtl"
 if  { $::env(VIVADO_VERSION) >= 2024.1 } {
    set bdVer "2024.1"
 }
-loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.bd"
-# loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.tcl"
+# loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.bd"
+loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.tcl"
 
 # TODO Load IP cores if there are any
 # loadIpCore -dir "$::DIR_PATH/ip"

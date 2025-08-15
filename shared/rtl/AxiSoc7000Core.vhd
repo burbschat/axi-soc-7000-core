@@ -18,17 +18,31 @@ entity AxiSoc7000Core is
         ROGUE_SIM_EN_G : boolean := false
         );
     port (
-        glob_clk  : in    sl;
-        ddr_ports : inout DDR3_ports
+        DDR_cas_n         : inout std_logic;
+        DDR_cke           : inout std_logic;
+        DDR_ck_n          : inout std_logic;
+        DDR_ck_p          : inout std_logic;
+        DDR_cs_n          : inout std_logic;
+        DDR_reset_n       : inout std_logic;
+        DDR_odt           : inout std_logic;
+        DDR_ras_n         : inout std_logic;
+        DDR_we_n          : inout std_logic;
+        DDR_ba            : inout std_logic_vector (2 downto 0);
+        DDR_addr          : inout std_logic_vector (14 downto 0);
+        DDR_dm            : inout std_logic_vector (3 downto 0);
+        DDR_dq            : inout std_logic_vector (31 downto 0);
+        DDR_dqs_n         : inout std_logic_vector (3 downto 0);
+        DDR_dqs_p         : inout std_logic_vector (3 downto 0);
+        FIXED_IO_mio      : inout std_logic_vector (53 downto 0);
+        FIXED_IO_ddr_vrn  : inout std_logic;
+        FIXED_IO_ddr_vrp  : inout std_logic;
+        FIXED_IO_ps_srstb : inout std_logic;
+        FIXED_IO_ps_clk   : inout std_logic;
+        FIXED_IO_ps_porb  : inout std_logic
         );
 end entity AxiSoc7000Core;
 
 architecture mapping of AxiSoc7000Core is
-
-    signal regReadMaster  : AxiLiteReadMasterType;
-    signal regReadSlave   : AxiLiteReadSlaveType;
-    signal regWriteMaster : AxiLiteWriteMasterType;
-    signal regWriteSlave  : AxiLiteWriteSlaveType;
 
 begin
 
@@ -41,13 +55,27 @@ begin
             generic map (
                 TPD_G => TPD_G)
             port map (
-                glob_clk       => glob_clk,
-                ddr_ports      => ddr_ports,
-                -- Master AXI-Lite Interface
-                regReadMaster  => regReadMaster,
-                regReadSlave   => regReadSlave,
-                regWriteMaster => regWriteMaster,
-                regWriteSlave  => regWriteSlave
+                DDR_addr(14 downto 0)     => DDR_addr(14 downto 0),
+                DDR_ba(2 downto 0)        => DDR_ba(2 downto 0),
+                DDR_cas_n                 => DDR_cas_n,
+                DDR_ck_n                  => DDR_ck_n,
+                DDR_ck_p                  => DDR_ck_p,
+                DDR_cke                   => DDR_cke,
+                DDR_cs_n                  => DDR_cs_n,
+                DDR_dm(3 downto 0)        => DDR_dm(3 downto 0),
+                DDR_dq(31 downto 0)       => DDR_dq(31 downto 0),
+                DDR_dqs_n(3 downto 0)     => DDR_dqs_n(3 downto 0),
+                DDR_dqs_p(3 downto 0)     => DDR_dqs_p(3 downto 0),
+                DDR_odt                   => DDR_odt,
+                DDR_ras_n                 => DDR_ras_n,
+                DDR_reset_n               => DDR_reset_n,
+                DDR_we_n                  => DDR_we_n,
+                FIXED_IO_ddr_vrn          => FIXED_IO_ddr_vrn,
+                FIXED_IO_ddr_vrp          => FIXED_IO_ddr_vrp,
+                FIXED_IO_mio(53 downto 0) => FIXED_IO_mio(53 downto 0),
+                FIXED_IO_ps_clk           => FIXED_IO_ps_clk,
+                FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
+                FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb
                 );
 
     end generate;
