@@ -1,9 +1,9 @@
 #
-# This file is the rogue recipe and tested on Petalinux 2024.2
+# rogue recipe for Yocto
 #
 
-ROGUE_VERSION = "6.4.4"
-ROGUE_MD5SUM  = "e0f816fccb6b5e20cd627d3519c9f050"
+ROGUE_VERSION = "6.6.1"
+ROGUE_MD5SUM  = "0c0a5d4c32ab2cf5bca46edb92d9e13e"
 
 SUMMARY = "Recipe to build Rogue"
 HOMEPAGE ="https://github.com/slaclab/rogue"
@@ -12,6 +12,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = "https://github.com/slaclab/rogue/archive/v${ROGUE_VERSION}.tar.gz"
 SRC_URI[md5sum] = "${ROGUE_MD5SUM}"
+INSANE_SKIP += "src-uri-bad"
 
 S = "${WORKDIR}/rogue-${ROGUE_VERSION}"
 PROVIDES = "rogue"

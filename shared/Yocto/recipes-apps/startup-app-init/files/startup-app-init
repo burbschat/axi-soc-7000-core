@@ -106,7 +106,6 @@ then
    #    sleep 1
    # done
    # echo "/sys/class/fpga_manager/fpga0/state: $(cat /sys/class/fpga_manager/fpga0/state)"
-   # For now try only once
    fpgautil -b /boot/system.bit
 fi
 
@@ -116,10 +115,8 @@ insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko
 
 ##############################################################################
 
-# For now don't launch any user applications
-
 # Dump AxiVersion Status
-#/usr/bin/axiversiondump
+# /usr/bin/axiversiondump
 
 # Check if user's runtime application exists
 # if [ -f "/app/runtimeApp" ]
