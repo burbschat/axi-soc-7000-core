@@ -7,7 +7,7 @@ loadRuckusTcl "$::DIR_PATH/../../shared"
 loadConstraints -dir "$::DIR_PATH/xdc"
 
 # Load the common source code (common to board)
-loadSource -lib axi_soc_ultra_plus_core -dir "$::DIR_PATH/rtl"
+loadSource -lib axi_soc_7000_core -dir "$::DIR_PATH/rtl"
 
 # Load the block design
 if  { $::env(VIVADO_VERSION) >= 2024.1 } {
