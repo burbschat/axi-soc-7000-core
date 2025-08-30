@@ -97,16 +97,15 @@ fi
 
 ##############################################################################
 
-# Load the user's firmware (PL) .bit file (A.K.A. "2nd stage boot")
-if [ -f "/boot/system.bit" ]
+# Load the user's firmware (PL) .bin (not .bit for 7000 SoC!) file (A.K.A. "2nd stage boot")
+if [ -f "/boot/system.bin" ]
 then
    # fpgautil is "flaky" command and sometimes needs multiple retries to be successful
-   # while [ ! -z "$(fpgautil -b /boot/system.bit | grep failed)" ]
-   # do
-   #    sleep 1
-   # done
-   # echo "/sys/class/fpga_manager/fpga0/state: $(cat /sys/class/fpga_manager/fpga0/state)"
-   fpgautil -b /boot/system.bit
+   while [ ! -z "$(fpgautil -b /boot/system.bin | grep failed)" ]
+   do
+      sleep 1
+   done
+   echo "/sys/class/fpga_manager/fpga0/state: $(cat /sys/class/fpga_manager/fpga0/state)"
 fi
 
 # Load custom kernel driver
