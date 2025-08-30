@@ -1,7 +1,10 @@
 #include <dt-bindings/phy/phy.h>
 / {
 	chosen {
-		bootargs = " earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw net.ifnames=0 biosdevname=0 cma=128M";
+        // For ramfs make sure to set root correctly (and package the root filesystem with the boot image -> see image.its)
+		// bootargs = " earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/ram0 rw net.ifnames=0 biosdevname=0 cma=128M";
+        // Use second partition of sd card as root (persistent filesystem)
+		bootargs = " earlycon console=ttyPS0,115200 clk_ignore_unused root=/dev/mmcblk0p2 rw net.ifnames=0 biosdevname=0 cma=128M";
 		stdout-path = "serial0:115200n8";
 	};
 
