@@ -6,8 +6,8 @@
 	};
 
 	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
+		#address-cells = <1>;
+		#size-cells = <1>;
 		ranges;
 
         cma_reserved: cma@0 {
