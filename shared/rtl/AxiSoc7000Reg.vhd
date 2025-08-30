@@ -152,7 +152,7 @@ begin
             --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
             USE_SLOWCLK_G => true,
             --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
-            XIL_DEVICE_G  => "ULTRASCALE_PLUS",
+            XIL_DEVICE_G  => "7SERIES",
             EN_ICAP_G     => false)
         port map (
             --slowClk        => auxClk,
