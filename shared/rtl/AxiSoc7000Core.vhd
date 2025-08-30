@@ -15,7 +15,8 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 entity AxiSoc7000Core is
     generic(
         TPD_G          : time    := 1 ns;
-        ROGUE_SIM_EN_G : boolean := false
+        ROGUE_SIM_EN_G : boolean := false;
+        BUILD_INFO_G   : BuildInfoType
         );
     port (
         DDR_cas_n         : inout std_logic;
@@ -41,6 +42,11 @@ entity AxiSoc7000Core is
         FIXED_IO_ps_porb  : inout std_logic;
         -- Global pl clock
         pl_clk            : in    std_logic;
+        -- Application AXI-Lite Interfaces [0x80000000:0xFFFFFFFF] (for now pl clock domain)
+        appReadMaster     : out   AxiLiteReadMasterType;
+        appReadSlave      : in    AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
+        appWriteMaster    : out   AxiLiteWriteMasterType;
+        appWriteSlave     : in    AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C;
         -- Reset
         reset             : in    std_logic
         );
@@ -52,6 +58,9 @@ architecture mapping of AxiSoc7000Core is
     signal regReadSlave   : AxiLiteReadSlaveType;
     signal regWriteMaster : AxiLiteWriteMasterType;
     signal regWriteSlave  : AxiLiteWriteSlaveType;
+
+    -- Reset, not yet connected!
+    signal pl_rst: sl;
 
 begin
 
@@ -97,5 +106,29 @@ begin
                 );
 
     end generate;
+
+    ---------------
+    -- AXI CPU REG
+    ---------------
+    U_REG : entity axi_soc_7000_core.AxiSoc7000Reg
+        generic map (
+            BUILD_INFO_G => BUILD_INFO_G
+            )
+        port map(
+            -- Global pl clock
+            pl_clk         => pl_clk,
+            -- Global pl reset
+            pl_rst         => pl_rst,
+            -- Internal AXI4 Interfaces (eventually axiClk domain?)
+            regReadMaster  => regReadMaster,
+            regReadSlave   => regReadSlave,
+            regWriteMaster => regWriteMaster,
+            regWriteSlave  => regWriteSlave,
+            -- (Optional) Application AXI-Lite Interfaces (eventually appClk domain?)
+            appReadMaster  => appReadMaster,
+            appReadSlave   => appReadSlave,
+            appWriteMaster => appWriteMaster,
+            appWriteSlave  => appWriteSlave
+            );
 
 end architecture mapping;
