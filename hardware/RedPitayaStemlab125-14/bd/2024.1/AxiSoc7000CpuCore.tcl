@@ -398,6 +398,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net reset_1 [get_bd_ports reset_l] [get_bd_pins axi_protocol_convert_0/aresetn]
 
   # Create address segments
+  assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_lite/Reg] -force
 
 
   # Restore current instance
