@@ -59,9 +59,6 @@ architecture mapping of AxiSoc7000Core is
     signal regWriteMaster : AxiLiteWriteMasterType;
     signal regWriteSlave  : AxiLiteWriteSlaveType;
 
-    -- Reset, not yet connected!
-    signal pl_rst: sl;
-
 begin
 
     ----------
@@ -118,7 +115,7 @@ begin
             -- Global pl clock
             pl_clk         => pl_clk,
             -- Global pl reset
-            pl_rst         => pl_rst,
+            pl_rst         => reset,
             -- Internal AXI4 Interfaces (eventually axiClk domain?)
             regReadMaster  => regReadMaster,
             regReadSlave   => regReadSlave,
