@@ -19,7 +19,7 @@ package AxiSoc7000Pkg is
     -- constant AUX_CLK_PERIOD_C : real := (1.0/AUX_CLK_FREQ_C);  -- units of seconds
     --
     -- Application Address Offset
-    constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"8000_0000";
+    constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"2000_0000";
     --
     -- -- SOC AXI Configuration
     -- constant AXI_SOC_CONFIG_C : AxiConfigType := (
