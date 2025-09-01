@@ -9,6 +9,8 @@
 ## the terms contained in the LICENSE.txt file.
 ##############################################################################
 
+fsRamdisk=true # true for ramdisk, false for root on SD-card
+
 while getopts p:n:h:x:l:d:t:r:s:f: flag
 do
     case "${flag}" in
@@ -21,6 +23,7 @@ do
         t) dmaTxBuffCount=${OPTARG};;
         r) dmaRxBuffCount=${OPTARG};;
         s) dmaBuffSize=${OPTARG};;
+        f) fsRamdisk=${OPTARG};;
     esac
 done
 
@@ -34,6 +37,7 @@ axi_soc_7000_core=$(dirname $(readlink -f $0))
 aes_stream_drivers=$(realpath $axi_soc_7000_core/../aes-stream-drivers)
 hwDir=$axi_soc_7000_core/hardware/$hwType
 imageDump=${xsa%.*}.linux.tar.gz
+rootfsDump=${xsa%.*}.rootfs.tar.gz # Dump rootfs, used for root on SD-card
 proj_dir=$(realpath "$path/$Name")
 image_dir="$proj_dir/build/tmp/deploy/images/zynq-user"
 
@@ -244,13 +248,21 @@ cd $proj_dir/build/tmp/deploy/images/zynq-user
 cp -rfL download-zynq-user.bit $proj_dir/linux/system.bit
 cp -rfL boot.bin                 $proj_dir/linux/BOOT.BIN
 cp -rfL boot.scr                 $proj_dir/linux/boot.scr
+if [[ $fsRamdisk == false ]]; then
+    # For root filesystem on sd-card, copy over the root filesystem
+    cp -rfL petalinux-image-minimal-zynq-user.tar.gz $rootfsDump
+fi
 
 # zynq-user (as opposed to zynqmp-user) gives both a uImage and zImage.
 # Perhaps we could directly use the uImage? For now use zImage and mkimage.
 # Create the image.ub
 cp -rfL zImage linux.bin
 gzip -k linux.bin
-cp $axi_soc_7000_core/shared/Yocto/image.its .
+if [[ $fsRamdisk == true ]]; then
+    cp $axi_soc_7000_core/shared/Yocto/image.its ./image.its
+else
+    cp $axi_soc_7000_core/shared/Yocto/image_no-ramdisk.its ./image.its
+fi
 mkimage -f image.its $proj_dir/linux/image.ub  > /dev/null
 
 # Default file list
@@ -282,7 +294,11 @@ cd $proj_dir && tar -czf $imageDump $fileList
 echo "########################################################################"
 echo "Release File List: $fileList"
 echo "########################################################################"
-echo "linux.tar.gz image path: $imageDump"
+echo "linux.tar.gz image path (main partition): $imageDump"
+if [[ $fsRamdisk == false ]]; then
+    echo "########################################################################"
+    echo "rootfs.tar.gz image path (second partition, for non-ramdisk): $rootfsDump"
+fi
 echo "########################################################################"
 
 ##############################################################################

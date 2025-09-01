@@ -30,19 +30,19 @@
                         };
                 };
                 // Package ramdisk (and set root kernel command line argument) to use ramdisk root
-                ramdisk-1 {
-                        description = "petalinux-image-minimal";
-                        data = /incbin/("petalinux-image-minimal-zynq-user.cpio.gz");
-                        type = "ramdisk";
-                        arch = "arm";
-                        os = "linux";
-                        compression = "none";
-
-
-                        hash-1 {
-                                algo = "sha256";
-                        };
-                };
+                /* ramdisk-1 { */
+                /*         description = "petalinux-image-minimal"; */
+                /*         data = /incbin/("petalinux-image-minimal-zynq-user.cpio.gz"); */
+                /*         type = "ramdisk"; */
+                /*         arch = "arm"; */
+                /*         os = "linux"; */
+                /*         compression = "none"; */
+                /**/
+                /**/
+                /*         hash-1 { */
+                /*                 algo = "sha256"; */
+                /*         }; */
+                /* }; */
 	};
 
         configurations {
