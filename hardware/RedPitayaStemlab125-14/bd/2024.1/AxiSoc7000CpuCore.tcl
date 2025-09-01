@@ -382,8 +382,13 @@ proc create_root_design { parentCell } {
   # Create instance: axi_protocol_convert_0, and set properties
   set axi_protocol_convert_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_0 ]
   set_property -dict [list \
+    CONFIG.ADDR_WIDTH {32} \
+    CONFIG.DATA_WIDTH {32} \
+    CONFIG.ID_WIDTH {16} \
     CONFIG.MI_PROTOCOL {AXI4LITE} \
     CONFIG.READ_WRITE_MODE {READ_WRITE} \
+    CONFIG.SI_PROTOCOL {AXI3} \
+    CONFIG.TRANSLATION_MODE {2} \
   ] $axi_protocol_convert_0
 
 
