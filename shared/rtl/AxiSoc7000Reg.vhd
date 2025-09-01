@@ -69,7 +69,7 @@ architecture mapping of AxiSoc7000Reg is
             connectivity => x"FFFF"),
         APP_INDEX_C      => (
             baseAddr     => APP_ADDR_OFFSET_C,
-            addrBits     => 31,
+            addrBits     => 29,
             connectivity => x"FFFF"));
 
     signal axilReadMaster  : AxiLiteReadMasterType;
