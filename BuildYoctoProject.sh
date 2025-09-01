@@ -38,6 +38,7 @@ aes_stream_drivers=$(realpath $axi_soc_7000_core/../aes-stream-drivers)
 hwDir=$axi_soc_7000_core/hardware/$hwType
 imageDump=${xsa%.*}.linux.tar.gz
 rootfsDump=${xsa%.*}.rootfs.tar.gz # Dump rootfs, used for root on SD-card
+bitstream7Series=${xsa%.*}.bin # Bitstream in format for 7Series Zynq
 proj_dir=$(realpath "$path/$Name")
 image_dir="$proj_dir/build/tmp/deploy/images/zynq-user"
 
@@ -244,8 +245,8 @@ mkdir $proj_dir/linux
 # Go to deploy image dir
 cd $proj_dir/build/tmp/deploy/images/zynq-user
 
-# Copy over the FSBL, U-boot and .bit files
-cp -rfL download-zynq-user.bit $proj_dir/linux/system.bit
+# Copy over the FSBL, U-boot and .bin (for 7series its bin, not bit!) files
+cp -rfL $bitstream7Series        $proj_dir/linux/system.bin
 cp -rfL boot.bin                 $proj_dir/linux/BOOT.BIN
 cp -rfL boot.scr                 $proj_dir/linux/boot.scr
 if [[ $fsRamdisk == false ]]; then
@@ -265,8 +266,8 @@ else
 fi
 mkimage -f image.its $proj_dir/linux/image.ub  > /dev/null
 
-# Default file list
-fileList="linux/system.bit linux/BOOT.BIN linux/boot.scr linux/image.ub"
+# Default file list (.bin for 7series!)
+fileList="linux/system.bin linux/BOOT.BIN linux/boot.scr linux/image.ub"
 
 if [[ -v SOC_IP_STATIC ]]; then
    # File list with static IP
