@@ -99,7 +99,7 @@ architecture mapping of AxiSoc7000Cpu is
             axi_lite_rvalid   : in    std_logic;
             axi_lite_rready   : out   std_logic;
             -- Reset
-            reset_l             : in    std_logic
+            reset_l           : in    std_logic
             );
     end component AxiSoc7000CpuCore;
 
@@ -108,51 +108,51 @@ begin
 
     U_CPU : AxiSoc7000CpuCore
         port map(
-            DDR_addr(14 downto 0)        => DDR_addr(14 downto 0),
-            DDR_ba(2 downto 0)           => DDR_ba(2 downto 0),
-            DDR_cas_n                    => DDR_cas_n,
-            DDR_ck_n                     => DDR_ck_n,
-            DDR_ck_p                     => DDR_ck_p,
-            DDR_cke                      => DDR_cke,
-            DDR_cs_n                     => DDR_cs_n,
-            DDR_dm(3 downto 0)           => DDR_dm(3 downto 0),
-            DDR_dq(31 downto 0)          => DDR_dq(31 downto 0),
-            DDR_dqs_n(3 downto 0)        => DDR_dqs_n(3 downto 0),
-            DDR_dqs_p(3 downto 0)        => DDR_dqs_p(3 downto 0),
-            DDR_odt                      => DDR_odt,
-            DDR_ras_n                    => DDR_ras_n,
-            DDR_reset_n                  => DDR_reset_n,
-            DDR_we_n                     => DDR_we_n,
-            FIXED_IO_ddr_vrn             => FIXED_IO_ddr_vrn,
-            FIXED_IO_ddr_vrp             => FIXED_IO_ddr_vrp,
-            FIXED_IO_mio(53 downto 0)    => FIXED_IO_mio(53 downto 0),
-            FIXED_IO_ps_clk              => FIXED_IO_ps_clk,
-            FIXED_IO_ps_porb             => FIXED_IO_ps_porb,
-            FIXED_IO_ps_srstb            => FIXED_IO_ps_srstb,
+            DDR_addr(14 downto 0)     => DDR_addr(14 downto 0),
+            DDR_ba(2 downto 0)        => DDR_ba(2 downto 0),
+            DDR_cas_n                 => DDR_cas_n,
+            DDR_ck_n                  => DDR_ck_n,
+            DDR_ck_p                  => DDR_ck_p,
+            DDR_cke                   => DDR_cke,
+            DDR_cs_n                  => DDR_cs_n,
+            DDR_dm(3 downto 0)        => DDR_dm(3 downto 0),
+            DDR_dq(31 downto 0)       => DDR_dq(31 downto 0),
+            DDR_dqs_n(3 downto 0)     => DDR_dqs_n(3 downto 0),
+            DDR_dqs_p(3 downto 0)     => DDR_dqs_p(3 downto 0),
+            DDR_odt                   => DDR_odt,
+            DDR_ras_n                 => DDR_ras_n,
+            DDR_reset_n               => DDR_reset_n,
+            DDR_we_n                  => DDR_we_n,
+            FIXED_IO_ddr_vrn          => FIXED_IO_ddr_vrn,
+            FIXED_IO_ddr_vrp          => FIXED_IO_ddr_vrp,
+            FIXED_IO_mio(53 downto 0) => FIXED_IO_mio(53 downto 0),
+            FIXED_IO_ps_clk           => FIXED_IO_ps_clk,
+            FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
+            FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
             -- Global pl clock
-            pl_clk                       => pl_clk,
-            -- Master AXI-Lite Interface (TODO: Remove redundant (x donwto y)?)
-            axi_lite_araddr(31 downto 0) => regReadMaster.araddr(31 downto 0),
-            axi_lite_arprot(2 downto 0)  => regReadMaster.arprot(2 downto 0),
-            axi_lite_arready             => regReadSlave.arready,
-            axi_lite_arvalid             => regReadMaster.arvalid,
-            axi_lite_awaddr(31 downto 0) => regWriteMaster.awaddr(31 downto 0),
-            axi_lite_awprot(2 downto 0)  => regWriteMaster.awprot(2 downto 0),
-            axi_lite_awready             => regWriteSlave.awready,
-            axi_lite_awvalid             => regWriteMaster.awvalid,
-            axi_lite_bready              => regWriteMaster.bready,
-            axi_lite_bresp(1 downto 0)   => AXI_RESP_OK_C(1 downto 0),  -- Always respond OK
-            axi_lite_bvalid              => regWriteSlave.bvalid,
-            axi_lite_rdata(31 downto 0)  => regReadSlave.rdata(31 downto 0),
-            axi_lite_rready              => regReadMaster.rready,
-            axi_lite_rresp(1 downto 0)   => AXI_RESP_OK_C(1 downto 0),  -- Always respond OK
-            axi_lite_rvalid              => regReadSlave.rvalid,
-            axi_lite_wdata(31 downto 0)  => regWriteMaster.wdata(31 downto 0),
-            axi_lite_wready              => regWriteSlave.wready,
-            axi_lite_wstrb(3 downto 0)   => regWriteMaster.wstrb(3 downto 0),
-            axi_lite_wvalid              => regWriteMaster.wvalid,
+            pl_clk                    => pl_clk,
+            -- Master AXI-Lite Interface
+            axi_lite_araddr           => regReadMaster.araddr,
+            axi_lite_arprot           => regReadMaster.arprot,
+            axi_lite_arready          => regReadSlave.arready,
+            axi_lite_arvalid          => regReadMaster.arvalid,
+            axi_lite_awaddr           => regWriteMaster.awaddr,
+            axi_lite_awprot           => regWriteMaster.awprot,
+            axi_lite_awready          => regWriteSlave.awready,
+            axi_lite_awvalid          => regWriteMaster.awvalid,
+            axi_lite_bready           => regWriteMaster.bready,
+            axi_lite_bresp            => AXI_RESP_OK_C,  -- Always respond OK
+            axi_lite_bvalid           => regWriteSlave.bvalid,
+            axi_lite_rdata            => regReadSlave.rdata,
+            axi_lite_rready           => regReadMaster.rready,
+            axi_lite_rresp            => AXI_RESP_OK_C,  -- Always respond OK
+            axi_lite_rvalid           => regReadSlave.rvalid,
+            axi_lite_wdata            => regWriteMaster.wdata,
+            axi_lite_wready           => regWriteSlave.wready,
+            axi_lite_wstrb            => regWriteMaster.wstrb,
+            axi_lite_wvalid           => regWriteMaster.wvalid,
             -- Reset
-            reset_l                      => reset_l
+            reset_l                   => reset_l
             );
 
 end architecture mapping;
