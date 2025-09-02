@@ -47,10 +47,10 @@ set_property PACKAGE_PIN Y18 [get_ports {adc_dat_b_i[15]}]
 
 # clock input
 
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports adc_clk_p_i]
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports adc_clk_n_i]
-set_property PACKAGE_PIN U18 [get_ports adc_clk_p_i]
-set_property PACKAGE_PIN U19 [get_ports adc_clk_n_i]
+set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports adcClkP]
+set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports adcClkN]
+set_property PACKAGE_PIN U18 [get_ports adcClkP]
+set_property PACKAGE_PIN U19 [get_ports adcClkN]
 
 # clock output
 
@@ -208,5 +208,5 @@ set_property PACKAGE_PIN J14 [get_ports {led_o[7]}]
 
 ### Clocks
 
-set_input_delay -max 1.000 -clock adc_clk_p_i [get_ports adc_dat_a_i[*]]
-set_input_delay -max 1.000 -clock adc_clk_p_i [get_ports adc_dat_b_i[*]]
+set_input_delay -max 1.000 -clock adcClkP [get_ports adc_dat_a_i[*]]
+set_input_delay -max 1.000 -clock adcClkP [get_ports adc_dat_b_i[*]]
