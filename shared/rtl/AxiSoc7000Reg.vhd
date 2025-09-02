@@ -48,29 +48,30 @@ architecture mapping of AxiSoc7000Reg is
     constant AXIS_MON_OB_C   : natural := 3;
     constant APP_INDEX_C     : natural := 4;
 
-    constant NUM_AXI_MASTERS_C : natural := 5;
+    constant NUM_AXI_MASTERS_C : natural := 1;
 
     constant AXI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := (
         VERSION_INDEX_C  => (
             baseAddr     => x"0000_0000",
             addrBits     => 16,
-            connectivity => x"FFFF"),
-        SYSMON_INDEX_C   => (
-            baseAddr     => x"0001_0000",
-            addrBits     => 16,
-            connectivity => x"FFFF"),
-        AXIS_MON_IB_C    => (
-            baseAddr     => x"0002_0000",
-            addrBits     => 16,
-            connectivity => x"FFFF"),
-        AXIS_MON_OB_C    => (
-            baseAddr     => x"0003_0000",
-            addrBits     => 16,
-            connectivity => x"FFFF"),
-        APP_INDEX_C      => (
-            baseAddr     => APP_ADDR_OFFSET_C,
-            addrBits     => 29,
-            connectivity => x"FFFF"));
+            connectivity => x"FFFF")
+        -- SYSMON_INDEX_C   => (
+        --     baseAddr     => x"0001_0000",
+        --     addrBits     => 16,
+        --     connectivity => x"FFFF"),
+        -- AXIS_MON_IB_C    => (
+        --     baseAddr     => x"0002_0000",
+        --     addrBits     => 16,
+        --     connectivity => x"FFFF"),
+        -- AXIS_MON_OB_C    => (
+        --     baseAddr     => x"0003_0000",
+        --     addrBits     => 16,
+        --     connectivity => x"FFFF"),
+        -- APP_INDEX_C      => (
+        --     baseAddr     => APP_ADDR_OFFSET_C,
+        --     addrBits     => 29,
+        --     connectivity => x"FFFF")
+        );
 
     signal axilReadMaster  : AxiLiteReadMasterType;
     signal axilReadSlave   : AxiLiteReadSlaveType;
@@ -129,7 +130,8 @@ begin
             TPD_G              => TPD_G,
             NUM_SLAVE_SLOTS_G  => 1,
             NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
-            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C)
+            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
+            DEBUG_G            => true)  -- Try enable debug printouts
         port map (
             axiClk              => pl_clk,
             axiClkRst           => pl_rst,
