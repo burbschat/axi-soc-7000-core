@@ -150,7 +150,7 @@ begin
             TPD_G         => TPD_G,
             BUILD_INFO_G  => BUILD_INFO_G,
             --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
-            USE_SLOWCLK_G => true,
+            USE_SLOWCLK_G => false,
             --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
             XIL_DEVICE_G  => "7SERIES",
             EN_ICAP_G     => false)
