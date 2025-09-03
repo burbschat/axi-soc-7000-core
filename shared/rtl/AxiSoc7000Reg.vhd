@@ -52,7 +52,7 @@ architecture mapping of AxiSoc7000Reg is
 
     constant AXI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := (
         VERSION_INDEX_C  => (
-            baseAddr     => x"0000_0000",
+            baseAddr     => x"4000_0000",
             addrBits     => 16,
             connectivity => x"FFFF")
         -- SYSMON_INDEX_C   => (
