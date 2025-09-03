@@ -10,9 +10,15 @@ loadConstraints -dir "$::DIR_PATH/xdc"
 loadSource -lib axi_soc_7000_core -dir "$::DIR_PATH/rtl"
 
 # Load the block design
+# If tcl scripts are used, the only differences are literally the check that
+# complaints that the vivado version is not the one that generated the
+# script...
 if  { $::env(VIVADO_VERSION) >= 2024.1 } {
    set bdVer "2024.1"
+} elseif  { $::env(VIVADO_VERSION) >= 2023.1 } {
+   set bdVer "2023.1"
 }
+
 # loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.bd"
 loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.tcl"
 
