@@ -1,5 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+use ieee.std_logic_arith.all;
 
 library surf;
 use surf.StdRtlPkg.all;
@@ -16,8 +18,9 @@ use unisim.vcomponents.all;
 
 entity AxiSoc7000Reg is
     generic (
-        TPD_G        : time := 1 ns;
-        BUILD_INFO_G : BuildInfoType
+        TPD_G           : time             := 1 ns;
+        BUILD_INFO_G    : BuildInfoType;
+        AXI_BASE_ADDR_G : slv(31 downto 0) := x"4000_0000"
         );
     port (
         -- Global pl clock
@@ -52,7 +55,7 @@ architecture mapping of AxiSoc7000Reg is
 
     constant AXI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := (
         VERSION_INDEX_C  => (
-            baseAddr     => x"4000_0000",
+            baseAddr     => (AXI_BASE_ADDR_G+x"0000_0000"),
             addrBits     => 16,
             connectivity => x"FFFF")
         -- SYSMON_INDEX_C   => (
@@ -143,42 +146,41 @@ begin
             mAxiWriteSlaves     => axilWriteSlaves,
             mAxiReadMasters     => axilReadMasters,
             mAxiReadSlaves      => axilReadSlaves);
-    --
-    -- --------------------------
-    -- -- AXI-Lite Version Module
-    -- --------------------------
-    -- U_Version : entity surf.AxiVersion
-    --     generic map (
-    --         TPD_G         => TPD_G,
-    --         BUILD_INFO_G  => BUILD_INFO_G,
-    --         --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
-    --         USE_SLOWCLK_G => false,
-    --         --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
-    --         XIL_DEVICE_G  => "7SERIES",
-    --         EN_ICAP_G     => false)
-    --     port map (
-    --         --slowClk        => auxClk,
-    --         -- AXI-Lite Interface
-    --         axiClk         => pl_clk,
-    --         axiRst         => pl_rst,
-    --         axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
-    --         axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
-    --         axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
-    --         axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C)
-    --      -- Optional: User Reset
-    --      --userReset      => cardResetOut,
-    --      -- Optional: user values
-    --      -- userValues     => userValues
-    --         );
 
-    -- Try directly serving the axi interface. No additional offsets shoudl be
-    -- applied so this should be readable at the base offset of the PS interface
-    U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
-        port map(
-            pl_clk          => pl_clk,
-            axilReadMaster  => axilReadMasters(VERSION_INDEX_C),
-            axilReadSlave   => axilReadSlaves(VERSION_INDEX_C),
-            axilWriteMaster => axilWriteMasters(VERSION_INDEX_C),
-            axilWriteSlave  => axilWriteSlaves(VERSION_INDEX_C));
+    --------------------------
+    -- AXI-Lite Version Module
+    --------------------------
+    U_Version : entity surf.AxiVersion
+        generic map (
+            TPD_G         => TPD_G,
+            BUILD_INFO_G  => BUILD_INFO_G,
+            --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
+            USE_SLOWCLK_G => false,
+            --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
+            XIL_DEVICE_G  => "7SERIES",
+            EN_ICAP_G     => false)
+        port map (
+            --slowClk        => auxClk,
+            -- AXI-Lite Interface
+            axiClk         => pl_clk,
+            axiRst         => pl_rst,
+            axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
+            axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
+            axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
+            axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C)
+         -- Optional: User Reset
+         --userReset      => cardResetOut,
+         -- Optional: user values
+         -- userValues     => userValues
+            );
+
+    -- Some static registers for testing
+    -- U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
+    --     port map(
+    --         pl_clk          => pl_clk,
+    --         axilReadMaster  => axilReadMasters(VERSION_INDEX_C),
+    --         axilReadSlave   => axilReadSlaves(VERSION_INDEX_C),
+    --         axilWriteMaster => axilWriteMasters(VERSION_INDEX_C),
+    --         axilWriteSlave  => axilWriteSlaves(VERSION_INDEX_C));
 
 end architecture mapping;
