@@ -107,34 +107,25 @@ begin
     ---------------
     -- AXI CPU REG
     ---------------
-    -- U_REG : entity axi_soc_7000_core.AxiSoc7000Reg
-    --     generic map (
-    --         BUILD_INFO_G => BUILD_INFO_G
-    --         )
-    --     port map(
-    --         -- Global pl clock
-    --         pl_clk         => pl_clk,
-    --         -- Global pl reset
-    --         pl_rst         => reset,
-    --         -- Internal AXI4 Interfaces (eventually axiClk domain?)
-    --         regReadMaster  => regReadMaster,
-    --         regReadSlave   => regReadSlave,
-    --         regWriteMaster => regWriteMaster,
-    --         regWriteSlave  => regWriteSlave,
-    --         -- (Optional) Application AXI-Lite Interfaces (eventually appClk domain?)
-    --         appReadMaster  => appReadMaster,
-    --         appReadSlave   => appReadSlave,
-    --         appWriteMaster => appWriteMaster,
-    --         appWriteSlave  => appWriteSlave
-    --         );
-    -- Try directly serving the axi interface. No additional offsets shoudl be
-    -- applied so this should be readable at the base offset of the PS interface
-    U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
+    U_REG : entity axi_soc_7000_core.AxiSoc7000Reg
+        generic map (
+            BUILD_INFO_G => BUILD_INFO_G
+            )
         port map(
-            pl_clk          => pl_clk,
-            axilReadMaster  => regReadMaster,
-            axilReadSlave   => regReadSlave,
-            axilWriteMaster => regWriteMaster,
-            axilWriteSlave  => regWriteSlave);
+            -- Global pl clock
+            pl_clk         => pl_clk,
+            -- Global pl reset
+            pl_rst         => reset,
+            -- Internal AXI4 Interfaces (eventually axiClk domain?)
+            regReadMaster  => regReadMaster,
+            regReadSlave   => regReadSlave,
+            regWriteMaster => regWriteMaster,
+            regWriteSlave  => regWriteSlave,
+            -- (Optional) Application AXI-Lite Interfaces (eventually appClk domain?)
+            appReadMaster  => appReadMaster,
+            appReadSlave   => appReadSlave,
+            appWriteMaster => appWriteMaster,
+            appWriteSlave  => appWriteSlave
+            );
 
 end architecture mapping;

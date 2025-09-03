@@ -125,50 +125,60 @@ begin
     -- AXI-Lite Crossbar
     --------------------
 
-    U_XBAR : entity surf.AxiLiteCrossbar
-        generic map (
-            TPD_G              => TPD_G,
-            NUM_SLAVE_SLOTS_G  => 1,
-            NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
-            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
-            DEBUG_G            => true)  -- Try enable debug printouts
-        port map (
-            axiClk              => pl_clk,
-            axiClkRst           => pl_rst,
-            sAxiWriteMasters(0) => axilWriteMaster,
-            sAxiWriteSlaves(0)  => axilWriteSlave,
-            sAxiReadMasters(0)  => axilReadMaster,
-            sAxiReadSlaves(0)   => axilReadSlave,
-            mAxiWriteMasters    => axilWriteMasters,
-            mAxiWriteSlaves     => axilWriteSlaves,
-            mAxiReadMasters     => axilReadMasters,
-            mAxiReadSlaves      => axilReadSlaves);
+    -- U_XBAR : entity surf.AxiLiteCrossbar
+    --     generic map (
+    --         TPD_G              => TPD_G,
+    --         NUM_SLAVE_SLOTS_G  => 1,
+    --         NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
+    --         MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
+    --         DEBUG_G            => true)  -- Try enable debug printouts
+    --     port map (
+    --         axiClk              => pl_clk,
+    --         axiClkRst           => pl_rst,
+    --         sAxiWriteMasters(0) => axilWriteMaster,
+    --         sAxiWriteSlaves(0)  => axilWriteSlave,
+    --         sAxiReadMasters(0)  => axilReadMaster,
+    --         sAxiReadSlaves(0)   => axilReadSlave,
+    --         mAxiWriteMasters    => axilWriteMasters,
+    --         mAxiWriteSlaves     => axilWriteSlaves,
+    --         mAxiReadMasters     => axilReadMasters,
+    --         mAxiReadSlaves      => axilReadSlaves);
+    --
+    -- --------------------------
+    -- -- AXI-Lite Version Module
+    -- --------------------------
+    -- U_Version : entity surf.AxiVersion
+    --     generic map (
+    --         TPD_G         => TPD_G,
+    --         BUILD_INFO_G  => BUILD_INFO_G,
+    --         --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
+    --         USE_SLOWCLK_G => false,
+    --         --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
+    --         XIL_DEVICE_G  => "7SERIES",
+    --         EN_ICAP_G     => false)
+    --     port map (
+    --         --slowClk        => auxClk,
+    --         -- AXI-Lite Interface
+    --         axiClk         => pl_clk,
+    --         axiRst         => pl_rst,
+    --         axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
+    --         axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
+    --         axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
+    --         axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C)
+    --      -- Optional: User Reset
+    --      --userReset      => cardResetOut,
+    --      -- Optional: user values
+    --      -- userValues     => userValues
+    --         );
 
-    --------------------------
-    -- AXI-Lite Version Module
-    --------------------------
-    U_Version : entity surf.AxiVersion
-        generic map (
-            TPD_G         => TPD_G,
-            BUILD_INFO_G  => BUILD_INFO_G,
-            --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
-            USE_SLOWCLK_G => false,
-            --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
-            XIL_DEVICE_G  => "7SERIES",
-            EN_ICAP_G     => false)
-        port map (
-            --slowClk        => auxClk,
-            -- AXI-Lite Interface
-            axiClk         => pl_clk,
-            axiRst         => pl_rst,
-            axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
-            axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
-            axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
-            axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C)
-         -- Optional: User Reset
-         --userReset      => cardResetOut,
-         -- Optional: user values
-         -- userValues     => userValues
-            );
+    -- Try directly serving the axi interface. No additional offsets shoudl be
+    -- applied so this should be readable at the base offset of the PS interface
+    U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
+        port map(
+            pl_clk          => pl_clk,
+            axilReadMaster  => regReadMaster,
+            axilReadSlave   => regReadSlave,
+            axilWriteMaster => regWriteMaster,
+            axilWriteSlave  => regWriteSlave);
 
 end architecture mapping;
