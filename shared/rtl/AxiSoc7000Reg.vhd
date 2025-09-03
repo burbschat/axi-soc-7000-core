@@ -125,24 +125,24 @@ begin
     -- AXI-Lite Crossbar
     --------------------
 
-    -- U_XBAR : entity surf.AxiLiteCrossbar
-    --     generic map (
-    --         TPD_G              => TPD_G,
-    --         NUM_SLAVE_SLOTS_G  => 1,
-    --         NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
-    --         MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
-    --         DEBUG_G            => true)  -- Try enable debug printouts
-    --     port map (
-    --         axiClk              => pl_clk,
-    --         axiClkRst           => pl_rst,
-    --         sAxiWriteMasters(0) => axilWriteMaster,
-    --         sAxiWriteSlaves(0)  => axilWriteSlave,
-    --         sAxiReadMasters(0)  => axilReadMaster,
-    --         sAxiReadSlaves(0)   => axilReadSlave,
-    --         mAxiWriteMasters    => axilWriteMasters,
-    --         mAxiWriteSlaves     => axilWriteSlaves,
-    --         mAxiReadMasters     => axilReadMasters,
-    --         mAxiReadSlaves      => axilReadSlaves);
+    U_XBAR : entity surf.AxiLiteCrossbar
+        generic map (
+            TPD_G              => TPD_G,
+            NUM_SLAVE_SLOTS_G  => 1,
+            NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
+            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
+            DEBUG_G            => true)  -- Try enable debug printouts
+        port map (
+            axiClk              => pl_clk,
+            axiClkRst           => pl_rst,
+            sAxiWriteMasters(0) => axilWriteMaster,
+            sAxiWriteSlaves(0)  => axilWriteSlave,
+            sAxiReadMasters(0)  => axilReadMaster,
+            sAxiReadSlaves(0)   => axilReadSlave,
+            mAxiWriteMasters    => axilWriteMasters,
+            mAxiWriteSlaves     => axilWriteSlaves,
+            mAxiReadMasters     => axilReadMasters,
+            mAxiReadSlaves      => axilReadSlaves);
     --
     -- --------------------------
     -- -- AXI-Lite Version Module
@@ -176,9 +176,9 @@ begin
     U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
         port map(
             pl_clk          => pl_clk,
-            axilReadMaster  => axilReadMaster,
-            axilReadSlave   => axilReadSlave,
-            axilWriteMaster => axilWriteMaster,
-            axilWriteSlave  => axilWriteSlave);
+            axilReadMaster  => axilReadMasters(VERSION_INDEX_C),
+            axilReadSlave   => axilReadSlaves(VERSION_INDEX_C),
+            axilWriteMaster => axilWriteMasters(VERSION_INDEX_C),
+            axilWriteSlave  => axilWriteSlaves(VERSION_INDEX_C));
 
 end architecture mapping;
