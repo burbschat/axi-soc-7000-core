@@ -46,18 +46,18 @@ end entity AxiSoc7000Reg;
 architecture mapping of AxiSoc7000Reg is
 
     constant VERSION_INDEX_C : natural := 0;
-    constant SYSMON_INDEX_C  : natural := 1;
-    constant AXIS_MON_IB_C   : natural := 2;
-    constant AXIS_MON_OB_C   : natural := 3;
-    constant APP_INDEX_C     : natural := 4;
+    constant APP_INDEX_C     : natural := 1;
+    -- constant SYSMON_INDEX_C  : natural := 1;
+    -- constant AXIS_MON_IB_C   : natural := 2;
+    -- constant AXIS_MON_OB_C   : natural := 3;
 
-    constant NUM_AXI_MASTERS_C : natural := 1;
+    constant NUM_AXI_MASTERS_C : natural := 2;
 
     constant AXI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := (
         VERSION_INDEX_C  => (
             baseAddr     => (AXI_BASE_ADDR_G+x"0000_0000"),
             addrBits     => 16,
-            connectivity => x"FFFF")
+            connectivity => x"FFFF"),
         -- SYSMON_INDEX_C   => (
         --     baseAddr     => x"0001_0000",
         --     addrBits     => 16,
@@ -70,10 +70,10 @@ architecture mapping of AxiSoc7000Reg is
         --     baseAddr     => x"0003_0000",
         --     addrBits     => 16,
         --     connectivity => x"FFFF"),
-        -- APP_INDEX_C      => (
-        --     baseAddr     => APP_ADDR_OFFSET_C,
-        --     addrBits     => 29,
-        --     connectivity => x"FFFF")
+        APP_INDEX_C      => (
+            baseAddr     => (AXI_BASE_ADDR_G+APP_ADDR_OFFSET_C),
+            addrBits     => APP_ADDR_BITS_C,
+            connectivity => x"FFFF")
         );
 
     signal axilReadMaster  : AxiLiteReadMasterType;
@@ -119,14 +119,22 @@ begin
     --
     -- end process;
 
+    --------------------
+    -- AXI-Lite Crossbar
+    --------------------
+
+    -- Register access interface is master
     axilReadMaster  <= regReadMaster;
     regReadSlave    <= axilReadSlave;
     axilWriteMaster <= regWriteMaster;
     regWriteSlave   <= axilWriteSlave;
 
-    --------------------
-    -- AXI-Lite Crossbar
-    --------------------
+    -- App interface is a slave
+    appReadMaster                <= axilReadMasters(APP_INDEX_C);
+    axilReadSlaves(APP_INDEX_C)  <= appReadSlave;
+    appWriteMaster               <= axilWriteMasters(APP_INDEX_C);
+    axilWriteSlaves(APP_INDEX_C) <= appWriteSlave;
+
 
     U_XBAR : entity surf.AxiLiteCrossbar
         generic map (

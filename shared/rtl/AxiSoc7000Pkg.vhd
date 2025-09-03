@@ -20,6 +20,7 @@ package AxiSoc7000Pkg is
     --
     -- Application Address Offset
     constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"2000_0000";
+    constant APP_ADDR_BITS_C             : natural range 1 to 32 := 29;  -- Must fit within 0x7FFF_FFFF
     --
     -- -- SOC AXI Configuration
     -- constant AXI_SOC_CONFIG_C : AxiConfigType := (
