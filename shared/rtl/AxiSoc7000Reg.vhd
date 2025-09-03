@@ -176,9 +176,9 @@ begin
     U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
         port map(
             pl_clk          => pl_clk,
-            axilReadMaster  => regReadMaster,
-            axilReadSlave   => regReadSlave,
-            axilWriteMaster => regWriteMaster,
-            axilWriteSlave  => regWriteSlave);
+            axilReadMaster  => axilReadMaster,
+            axilReadSlave   => axilReadSlave,
+            axilWriteMaster => axilWriteMaster,
+            axilWriteSlave  => axilWriteSlave);
 
 end architecture mapping;
