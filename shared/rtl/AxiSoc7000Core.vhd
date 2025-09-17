@@ -47,6 +47,7 @@ entity AxiSoc7000Core is
         appReadSlave      : in    AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
         appWriteMaster    : out   AxiLiteWriteMasterType;
         appWriteSlave     : in    AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C;
+
         -- Reset
         reset             : in    std_logic
         );
@@ -58,6 +59,23 @@ architecture mapping of AxiSoc7000Core is
     signal regReadSlave   : AxiLiteReadSlaveType;
     signal regWriteMaster : AxiLiteWriteMasterType;
     signal regWriteSlave  : AxiLiteWriteSlaveType;
+
+
+    -- Slave AXI4 Interface (DMA) TODO: Make sure compatible with CPU AXI3!
+    signal dmaReadMaster  : AxiReadMasterType;
+    signal dmaReadSlave   : AxiReadSlaveType;
+    signal dmaWriteMaster : AxiWriteMasterType;
+    signal dmaWriteSlave  : AxiWriteSlaveType;
+
+    -- Master AXI-Lite Interface (DMA control)
+    -- Index 0: DMA control registers
+    -- Index 1: Outbound streams monitoring registers (TODO: Implement if required)
+    -- Index 2: Inbound streams monitoring registers (TODO: Implement if required)
+    signal dmaCtrlReadMasters  : AxiLiteReadMasterArray(2 downto 0);
+    signal dmaCtrlReadSlaves   : AxiLiteReadSlaveArray(2 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_DECERR_C);
+    signal dmaCtrlWriteMasters : AxiLiteWriteMasterArray(2 downto 0);
+    signal dmaCtrlWriteSlaves  : AxiLiteWriteSlaveArray(2 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
+
 
 begin
 
@@ -98,6 +116,19 @@ begin
                 regReadSlave              => regReadSlave,
                 regWriteMaster            => regWriteMaster,
                 regWriteSlave             => regWriteSlave,
+
+                -- Master AXI-Lite Interface (DMA control)
+                dmaCtrlReadMaster  => dmaCtrlReadMasters(0),
+                dmaCtrlReadSlave   => dmaCtrlReadSlaves(0),
+                dmaCtrlWriteMaster => dmaCtrlWriteMasters(0),
+                dmaCtrlWriteSlave  => dmaCtrlWriteSlaves(0),
+
+                -- Slave AXI4 Interface (DMA) TODO: Make sure compatible with CPU AXI3!
+                dmaReadMaster  => dmaReadMaster,
+                dmaReadSlave   => dmaReadSlave,
+                dmaWriteMaster => dmaWriteMaster,
+                dmaWriteSlave  => dmaWriteSlave,
+
                 -- Reset
                 reset_l                   => not reset  -- Convert to active low reset
                 );

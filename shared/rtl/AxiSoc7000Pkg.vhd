@@ -21,14 +21,14 @@ package AxiSoc7000Pkg is
     -- Application Address Offset
     constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"2000_0000";
     constant APP_ADDR_BITS_C             : natural range 1 to 32 := 29;  -- Must fit within 0x7FFF_FFFF
-    --
-    -- -- SOC AXI Configuration
-    -- constant AXI_SOC_CONFIG_C : AxiConfigType := (
-    --    ADDR_WIDTH_C => 40,               -- 40-bit address interface
-    --    DATA_BYTES_C => 16,               -- 128-bit data interface
-    --    ID_BITS_C    => 4,                -- Up to 16 DMA IDS
-    --    LEN_BITS_C   => 8);               -- 8-bit awlen/arlen interface
-    --
+
+    -- SOC AXI Configuration
+    constant AXI_SOC_CONFIG_C : AxiConfigType := (
+       ADDR_WIDTH_C => 32,               -- 32-bit address interface
+       DATA_BYTES_C => 8,                -- 64-bit data interface
+       ID_BITS_C    => 4,                -- Up to 16 DMA IDS (TODO: What is this one?)
+       LEN_BITS_C   => 4);               -- 4-bit awlen/arlen interface (4 to ensure compat. with CPU AXI3 interface)
+
     -- -- DMA AXI Stream Configuration
     -- constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (
     --    TSTRB_EN_C    => false,
