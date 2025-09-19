@@ -123,7 +123,7 @@ begin
                 dmaCtrlWriteMaster => dmaCtrlWriteMasters(0),
                 dmaCtrlWriteSlave  => dmaCtrlWriteSlaves(0),
 
-                -- Slave AXI4 Interface (DMA) TODO: Make sure compatible with CPU AXI3!
+                -- Slave AXI4 Interface (DMA)
                 dmaReadMaster  => dmaReadMaster,
                 dmaReadSlave   => dmaReadSlave,
                 dmaWriteMaster => dmaWriteMaster,
