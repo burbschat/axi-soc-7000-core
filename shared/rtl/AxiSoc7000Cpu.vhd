@@ -40,6 +40,8 @@ entity AxiSoc7000Cpu is
         FIXED_IO_ps_porb  : inout std_logic;
         -- Global pl clock
         pl_clk            : in    std_logic;
+        -- DMA interrupt
+        dma_irq           : in    std_logic;
         -- Master AXI-Lite Interface
         regReadMaster     : out   AxiLiteReadMasterType;
         regReadSlave      : in    AxiLiteReadSlaveType;
@@ -92,6 +94,8 @@ architecture mapping of AxiSoc7000Cpu is
             FIXED_IO_ps_porb  : inout std_logic;
             -- Global pl clock
             pl_clk            : in    std_logic;
+            -- DMA interrupt
+            dma_irq           : in    std_logic;
             -- Master AXI-Lite Interface
             axi_lite_awaddr   : out   std_logic_vector (31 downto 0);
             axi_lite_awprot   : out   std_logic_vector (2 downto 0);
@@ -208,6 +212,8 @@ begin
             FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
             -- Global pl clock
             pl_clk                    => pl_clk,
+            -- DMA interrupt
+            dma_irq                   => dma_irq,
             -- Master AXI-Lite Interface
             axi_lite_araddr           => regReadMaster.araddr,
             axi_lite_arprot           => regReadMaster.arprot,
