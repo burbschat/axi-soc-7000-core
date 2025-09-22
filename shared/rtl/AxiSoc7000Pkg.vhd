@@ -8,16 +8,15 @@ use surf.AxiStreamPkg.all;
 use surf.AxiPkg.all;
 
 package AxiSoc7000Pkg is
-    -- TODO: Implement!
 
     -- -- System Clock Frequency/Period
-    -- constant DMA_CLK_FREQ_C   : real := 250.0E+6;              -- units of Hz
-    -- constant DMA_CLK_PERIOD_C : real := (1.0/DMA_CLK_FREQ_C);  -- units of seconds
-    --
+    constant DMA_CLK_FREQ_C   : real := 125.0E+6;              -- units of Hz
+    constant DMA_CLK_PERIOD_C : real := (1.0/DMA_CLK_FREQ_C);  -- units of seconds
+
     -- -- Aux Clock Frequency/Period
     -- constant AUX_CLK_FREQ_C   : real := 100.0E+6;              -- units of Hz
     -- constant AUX_CLK_PERIOD_C : real := (1.0/AUX_CLK_FREQ_C);  -- units of seconds
-    --
+
     -- Application Address Offset
     constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"2000_0000";
     constant APP_ADDR_BITS_C             : natural range 1 to 32 := 29;  -- Must fit within 0x7FFF_FFFF
@@ -29,16 +28,16 @@ package AxiSoc7000Pkg is
        ID_BITS_C    => 4,                -- Up to 16 DMA IDS (TODO: What is this one?)
        LEN_BITS_C   => 4);               -- 4-bit awlen/arlen interface (4 to ensure compat. with CPU AXI3 interface)
 
-    -- -- DMA AXI Stream Configuration
-    -- constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (
-    --    TSTRB_EN_C    => false,
-    --    TDATA_BYTES_C => AXI_SOC_CONFIG_C.DATA_BYTES_C,  -- Map the widths of the AXI interface
-    --    TDEST_BITS_C  => 8,
-    --    TID_BITS_C    => 3,
-    --    TKEEP_MODE_C  => TKEEP_COMP_C,
-    --    TUSER_BITS_C  => 4,
-    --    TUSER_MODE_C  => TUSER_FIRST_LAST_C);
-    --
+    -- DMA AXI Stream Configuration
+    constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (
+       TSTRB_EN_C    => false,
+       TDATA_BYTES_C => AXI_SOC_CONFIG_C.DATA_BYTES_C,  -- Map the widths of the AXI interface
+       TDEST_BITS_C  => 8,
+       TID_BITS_C    => 3,
+       TKEEP_MODE_C  => TKEEP_COMP_C,
+       TUSER_BITS_C  => 4,
+       TUSER_MODE_C  => TUSER_FIRST_LAST_C);
+
     -- List of PCIe Hardware Types
     constant HW_TYPE_UNDEFINED_C         : slv(31 downto 0) := x"00_00_00_00";
     constant HW_TYPE_RPTY_STEMLAB_125_14 : slv(31 downto 0) := x"00_00_00_01";  -- Stemlab 125-14

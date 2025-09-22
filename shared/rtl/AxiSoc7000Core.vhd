@@ -14,9 +14,12 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 
 entity AxiSoc7000Core is
     generic(
-        TPD_G          : time    := 1 ns;
-        ROGUE_SIM_EN_G : boolean := false;
-        BUILD_INFO_G   : BuildInfoType
+        TPD_G              : time                       := 1 ns;
+        ROGUE_SIM_EN_G     : boolean                    := false;
+        BUILD_INFO_G       : BuildInfoType;
+        DESC_MEMORY_TYPE_G : string                     := "ultra";  -- TODO: Probably not available on 7series?
+        DMA_BURST_BYTES_G  : positive range 256 to 4096 := 256;
+        DMA_SIZE_G         : positive range 1 to 1      := 1
         );
     port (
         DDR_cas_n         : inout std_logic;
@@ -47,9 +50,17 @@ entity AxiSoc7000Core is
         appReadSlave      : in    AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
         appWriteMaster    : out   AxiLiteWriteMasterType;
         appWriteSlave     : in    AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C;
+        -- DMA Interfaces  (TODO: dmaClk domain?)
+        -- dmaClk            : out   sl;
+        -- dmaRst            : out   sl;
+        dmaBuffGrpPause   : out   slv(7 downto 0);
+        dmaObMasters      : out   AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
+        dmaObSlaves       : in    AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
+        dmaIbMasters      : in    AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
+        dmaIbSlaves       : out   AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
 
         -- Reset
-        reset             : in    std_logic
+        reset : in std_logic
         );
 end entity AxiSoc7000Core;
 
@@ -59,7 +70,6 @@ architecture mapping of AxiSoc7000Core is
     signal regReadSlave   : AxiLiteReadSlaveType;
     signal regWriteMaster : AxiLiteWriteMasterType;
     signal regWriteSlave  : AxiLiteWriteSlaveType;
-
 
     -- Slave AXI4 Interface (DMA) TODO: Make sure compatible with CPU AXI3!
     signal dmaReadMaster  : AxiReadMasterType;
@@ -76,6 +86,7 @@ architecture mapping of AxiSoc7000Core is
     signal dmaCtrlWriteMasters : AxiLiteWriteMasterArray(2 downto 0);
     signal dmaCtrlWriteSlaves  : AxiLiteWriteSlaveArray(2 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
+    signal dma_irq : sl;
 
 begin
 
@@ -111,6 +122,8 @@ begin
                 FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
                 -- Global pl clock
                 pl_clk                    => pl_clk,
+                -- DMA interrupt
+                dma_irq                   => dma_irq,
                 -- Master AXI-Lite Interface
                 regReadMaster             => regReadMaster,
                 regReadSlave              => regReadSlave,
@@ -130,7 +143,7 @@ begin
                 dmaWriteSlave  => dmaWriteSlave,
 
                 -- Reset
-                reset_l                   => not reset  -- Convert to active low reset
+                reset_l => not reset    -- Convert to active low reset
                 );
 
     end generate;
@@ -157,6 +170,45 @@ begin
             appReadSlave   => appReadSlave,
             appWriteMaster => appWriteMaster,
             appWriteSlave  => appWriteSlave
+            );
+
+    --------------
+    -- AXI SOC DMA
+    --------------
+    U_DMA : entity axi_soc_7000_core.AxiSoc7000Dma
+        generic map (
+            TPD_G              => TPD_G,
+            -- ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
+            -- ROGUE_SIM_PORT_NUM_G => ROGUE_SIM_PORT_NUM_G,
+            -- ROGUE_SIM_CH_COUNT_G => ROGUE_SIM_CH_COUNT_G,
+            DESC_MEMORY_TYPE_G => DESC_MEMORY_TYPE_G,
+            DMA_SIZE_G         => DMA_SIZE_G,
+            DMA_BURST_BYTES_G  => DMA_BURST_BYTES_G)
+        port map (
+            axiClk           => pl_clk,
+            axiRst           => reset,
+            -- DMA AXI4 Interfaces (
+            axiReadMaster    => dmaReadMaster,
+            axiReadSlave     => dmaReadSlave,
+            axiWriteMaster   => dmaWriteMaster,
+            axiWriteSlave    => dmaWriteSlave,
+            -- User General Purpose AXI4 Interfaces (TODO: Leave out for now as unused)
+            -- usrReadMaster    => usrReadMaster,
+            -- usrReadSlave     => usrReadSlave,
+            -- usrWriteMaster   => usrWriteMaster,
+            -- usrWriteSlave    => usrWriteSlave,
+            -- AXI4-Lite Interfaces
+            axilReadMasters  => dmaCtrlReadMasters,
+            axilReadSlaves   => dmaCtrlReadSlaves,
+            axilWriteMasters => dmaCtrlWriteMasters,
+            axilWriteSlaves  => dmaCtrlWriteSlaves,
+            -- DMA Interfaces
+            dmaIrq           => dma_irq,
+            dmaBuffGrpPause  => dmaBuffGrpPause,
+            dmaObMasters     => dmaObMasters,
+            dmaObSlaves      => dmaObSlaves,
+            dmaIbMasters     => dmaIbMasters,
+            dmaIbSlaves      => dmaIbSlaves
             );
 
 end architecture mapping;
