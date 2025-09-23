@@ -21,7 +21,7 @@ entity AxiSoc7000Dma is
         INT_PIPE_STAGES_G  : natural range 0 to 1       := 1;
         PIPE_STAGES_G      : natural range 0 to 1       := 1;
         DESC_SYNTH_MODE_G  : string                     := "xpm";  -- TODO: Probably not available on 7series?
-        DESC_MEMORY_TYPE_G : string                     := "ultra";  -- TODO: Probably not available on 7series?
+        DESC_MEMORY_TYPE_G : string                     := "block";
         DESC_ARB_G         : boolean                    := false);  -- false = Round robin to help with timing
     port (
         -- Clock and Reset
@@ -67,10 +67,10 @@ architecture mapping of AxiSoc7000Dma is
     signal dmaWriteMasters : AxiWriteMasterArray(DMA_SIZE_G downto 0);
     signal dmaWriteSlaves  : AxiWriteSlaveArray(DMA_SIZE_G downto 0);
 
-    signal axiReadMasters  : AxiReadMasterArray(9 downto 0)  := (others => AXI_READ_MASTER_INIT_C);
-    signal axiReadSlaves   : AxiReadSlaveArray(9 downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
-    signal axiWriteMasters : AxiWriteMasterArray(9 downto 0) := (others => AXI_WRITE_MASTER_INIT_C);
-    signal axiWriteSlaves  : AxiWriteSlaveArray(9 downto 0)  := (others => AXI_WRITE_SLAVE_FORCE_C);
+    signal axiReadMasters  : AxiReadMasterArray(DMA_SIZE_G+1 downto 0)  := (others => AXI_READ_MASTER_INIT_C);
+    signal axiReadSlaves   : AxiReadSlaveArray(DMA_SIZE_G+1 downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
+    signal axiWriteMasters : AxiWriteMasterArray(DMA_SIZE_G+1 downto 0) := (others => AXI_WRITE_MASTER_INIT_C);
+    signal axiWriteSlaves  : AxiWriteSlaveArray(DMA_SIZE_G+1 downto 0)  := (others => AXI_WRITE_SLAVE_FORCE_C);
 
     -- Inbound (to CPU) streams after FIFOs
     signal sAxisMasters : AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
@@ -87,27 +87,38 @@ architecture mapping of AxiSoc7000Dma is
 
 begin
 
-    ---------------
-    -- AXI SoC XBAR
-    ---------------
+    ------------
+    -- AXI Muxes
+    ------------
+    -- TODO: Add FIFOs
 
-    U_XBAR : entity axi_soc_7000_core.AxiSoc7000CoreCrossbar
+    U_WritePathMux : entity surf.AxiWritePathMux
         generic map (
-            TPD_G      => TPD_G,
-            DMA_SIZE_G => DMA_SIZE_G)
+            TPD_G        => TPD_G,
+            NUM_SLAVES_G => DMA_SIZE_G+2)
         port map (
             axiClk           => axiClk,
             axiRst           => axiRst,
             -- Slaves
             sAxiWriteMasters => axiWriteMasters,
             sAxiWriteSlaves  => axiWriteSlaves,
-            sAxiReadMasters  => axiReadMasters,
-            sAxiReadSlaves   => axiReadSlaves,
             -- Master
             mAxiWriteMaster  => axiWriteMaster,
-            mAxiWriteSlave   => axiWriteSlave,
-            mAxiReadMaster   => axiReadMaster,
-            mAxiReadSlave    => axiReadSlave);
+            mAxiWriteSlave   => axiWriteSlave);
+
+    U_ReadPathMux : entity surf.AxiReadPathMux
+        generic map (
+            TPD_G        => TPD_G,
+            NUM_SLAVES_G => DMA_SIZE_G+2)
+        port map (
+            axiClk          => axiClk,
+            axiRst          => axiRst,
+            -- Slaves
+            sAxiReadMasters => axiReadMasters,
+            sAxiReadSlaves  => axiReadSlaves,
+            -- Master
+            mAxiReadMaster  => axiReadMaster,
+            mAxiReadSlave   => axiReadSlave);
 
     -----------
     -- DMA Core
@@ -121,7 +132,7 @@ begin
             DESC_SYNTH_MODE_G  => DESC_SYNTH_MODE_G,
             DESC_MEMORY_TYPE_G => DESC_MEMORY_TYPE_G,
             AXIL_BASE_ADDR_G   => x"00000000",
-            AXI_READY_EN_G     => true,  -- Using "Packet FIFO" option in AXI Interconnect IP core
+            AXI_READY_EN_G     => false,
             AXIS_READY_EN_G    => false,
             AXIS_CONFIG_G      => INT_DMA_AXIS_CONFIG_C,
             AXI_DMA_CONFIG_G   => AXI_SOC_CONFIG_C,

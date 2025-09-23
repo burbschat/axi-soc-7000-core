@@ -34,3 +34,9 @@ if { [VersionCheck 2021.2] < 0 } {exit -1}
 
 # Load Source Code
 loadSource -lib axi_soc_7000_core -dir "$::DIR_PATH/rtl"
+
+# loadIpCore -dir "$::DIR_PATH/ip/AxiPcie16BCrossbarIpCore"
+#loadSource -lib axi_soc_ultra_plus_core -dir "$::DIR_PATH/ip/AxiPcie16BCrossbarIpCore"
+
+# loadIpCore -dir "$::DIR_PATH/ip/SysMon"
+#loadSource -lib axi_soc_ultra_plus_core -dir "$::DIR_PATH/ip/SysMon"
