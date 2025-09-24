@@ -25,6 +25,10 @@
 		compatible = "axi_stream_dma";
 		reg = <0xb0000000 0x10000>;
 		interrupts = <0 29 4>;
-		interrupt-parent = <&gic>;
+        // Of CoURse the interupt parent has another label for the ultra scale device tree...
+        // ultrascale: gic
+        // 7series: intc
+        // Why Xilinx, why?
+		interrupt-parent = <&intc>;
 	};
 };
