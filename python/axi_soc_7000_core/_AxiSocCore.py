@@ -1,8 +1,9 @@
 import pyrogue as pr
+import axi_soc_7000_core as core
 
 
 class AxiSocCore(pr.Device):
-    def __init(self, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         # AxiVersion Module
