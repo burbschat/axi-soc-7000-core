@@ -19,8 +19,8 @@ use unisim.vcomponents.all;
 entity AxiSoc7000Reg is
     generic (
         TPD_G           : time             := 1 ns;
-        BUILD_INFO_G    : BuildInfoType;
-        AXI_BASE_ADDR_G : slv(31 downto 0) := x"4000_0000"
+        BUILD_INFO_G    : BuildInfoType
+        -- AXI_BASE_ADDR_G : slv(31 downto 0) := AXIL_REG_BASE_ADDR_C
         );
     port (
         -- Global pl clock
@@ -32,7 +32,7 @@ entity AxiSoc7000Reg is
         regReadSlave   : out AxiLiteReadSlaveType;
         regWriteMaster : in  AxiLiteWriteMasterType;
         regWriteSlave  : out AxiLiteWriteSlaveType;
-        -- Application AXI-Lite Interfaces [0x80000000:0xFFFFFFFF] 
+        -- Application AXI-Lite Interfaces [0x6000_0000:0x7FFF_FFFF]
         -- (could be appClk domain, but for now it isn't)
         -- appClk         : in  sl;
         -- appRst         : in  sl;
@@ -55,7 +55,7 @@ architecture mapping of AxiSoc7000Reg is
 
     constant AXI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := (
         VERSION_INDEX_C  => (
-            baseAddr     => (AXI_BASE_ADDR_G+x"0000_0000"),
+            baseAddr     => (AXIL_REG_BASE_ADDR_C+x"0000_0000"),
             addrBits     => 16,
             connectivity => x"FFFF"),
         -- SYSMON_INDEX_C   => (
@@ -71,7 +71,7 @@ architecture mapping of AxiSoc7000Reg is
         --     addrBits     => 16,
         --     connectivity => x"FFFF"),
         APP_INDEX_C      => (
-            baseAddr     => (AXI_BASE_ADDR_G+APP_ADDR_OFFSET_C),
+            baseAddr     => (AXIL_REG_BASE_ADDR_C+APP_ADDR_OFFSET_C),
             addrBits     => APP_ADDR_BITS_C,
             connectivity => x"FFFF")
         );

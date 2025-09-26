@@ -45,7 +45,7 @@ entity AxiSoc7000Core is
         FIXED_IO_ps_porb  : inout std_logic;
         -- Global pl clock
         pl_clk            : in    std_logic;
-        -- Application AXI-Lite Interfaces [0x80000000:0xFFFFFFFF] (for now pl clock domain)
+        -- Application AXI-Lite Interfaces [0x6000_0000:0x7FFF_FFFF] (for now pl clock domain)
         appReadMaster     : out   AxiLiteReadMasterType;
         appReadSlave      : in    AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
         appWriteMaster    : out   AxiLiteWriteMasterType;

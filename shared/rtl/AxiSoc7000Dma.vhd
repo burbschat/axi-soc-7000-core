@@ -131,7 +131,7 @@ begin
             DESC_ARB_G         => DESC_ARB_G,
             DESC_SYNTH_MODE_G  => DESC_SYNTH_MODE_G,
             DESC_MEMORY_TYPE_G => DESC_MEMORY_TYPE_G,
-            AXIL_BASE_ADDR_G   => x"00000000",
+            AXIL_BASE_ADDR_G   => x"00000000", -- Not used??
             AXI_READY_EN_G     => false,
             AXIS_READY_EN_G    => false,
             AXIS_CONFIG_G      => INT_DMA_AXIS_CONFIG_C,

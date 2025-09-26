@@ -17,9 +17,13 @@ package AxiSoc7000Pkg is
     -- constant AUX_CLK_FREQ_C   : real := 100.0E+6;              -- units of Hz
     -- constant AUX_CLK_PERIOD_C : real := (1.0/AUX_CLK_FREQ_C);  -- units of seconds
 
+    -- Register addresses base address, must match address base and range assigned in block design
+    constant AXIL_REG_BASE_ADDR_C : slv(31 downto 0) := x"4000_0000";
+    constant AXIL_REG_BASE_ADDR_BITS_C : natural range 1 to 32 := 30;
+
     -- Application Address Offset
-    constant APP_ADDR_OFFSET_C           : slv(31 downto 0) := x"2000_0000";
-    constant APP_ADDR_BITS_C             : natural range 1 to 32 := 29;  -- Must fit within 0x7FFF_FFFF
+    constant APP_ADDR_OFFSET_C : slv(31 downto 0)      := x"2000_0000";  -- Relative to AXIL_GLOB_BASE_ADDR_C
+    constant APP_ADDR_BITS_C   : natural range 1 to 32 := 29;  -- Must fit under 0x7FFF_FFFF
 
     -- SOC AXI Configuration
     constant AXI_SOC_CONFIG_C : AxiConfigType := (
