@@ -109,8 +109,12 @@ then
 fi
 
 # Load custom kernel driver
-insmod /lib/modules/$(uname -r)/updates/axi_memory_map.ko
-insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko
+# insmod /lib/modules/$(uname -r)/updates/axi_memory_map.ko
+# TODO: Maybe get addresses and buffer numbers and what not from a variable
+# somewhere so I can't forget to change them!
+# Or compile with them as defaults...
+insmod /lib/modules/$(uname -r)/updates/axi_memory_map.ko plMinAddr=0x40000000 plMaxAddr=0x4FFFFFFF
+insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko cfgRxCount0=64 cfgTxCount0=16
 
 ##############################################################################
 
