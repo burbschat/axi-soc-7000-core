@@ -17,7 +17,7 @@ entity AxiSoc7000Core is
         TPD_G              : time                       := 1 ns;
         ROGUE_SIM_EN_G     : boolean                    := false;
         BUILD_INFO_G       : BuildInfoType;
-        DESC_MEMORY_TYPE_G : string                     := "ultra";  -- TODO: Probably not available on 7series?
+        DESC_MEMORY_TYPE_G : string                     := "block";  -- TODO: Probably not available on 7series?
         DMA_BURST_BYTES_G  : positive range 256 to 4096 := 256;
         DMA_SIZE_G         : positive range 1 to 1      := 1
         );
@@ -150,7 +150,8 @@ begin
                 dmaWriteSlave  => dmaWriteSlave,
 
                 -- Reset
-                reset_l => not pl_rst_sig   -- Convert to active low reset
+                -- reset_l => not pl_rst_sig   -- Convert to active low reset
+                reset_l => not '0' -- Convert to active low reset, seems resetting here locks up the system... 
                 );
 
     end generate;

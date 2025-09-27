@@ -88,6 +88,8 @@ architecture mapping of AxiSoc7000Reg is
     signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
     signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXI_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
+    signal userReset : sl := '0';
+
     signal userValues : Slv32Array(0 to 63) := (others => x"00000000");
 
 begin
@@ -179,9 +181,19 @@ begin
             axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
             axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C),
             -- Optional: User Reset
-            userReset      => userResetOut
+            userReset      => userReset
          -- Optional: user values
          -- userValues     => userValues
+            );
+
+    U_dspReset : entity surf.RstPipeline
+        generic map(
+            TPD_G     => TPD_G,
+            INV_RST_G => false)
+        port map(
+            clk    => pl_clk,
+            rstIn  => userReset,
+            rstOut => userResetOut
             );
 
     -- Some static registers for testing
