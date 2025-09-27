@@ -60,7 +60,8 @@ entity AxiSoc7000Core is
         dmaIbSlaves       : out   AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
 
         -- Reset
-        reset : in std_logic
+        -- TODO: This is used also as a signal to drive other entities resets in this module. Perhaps this will lead to problems...
+        pl_rst : out std_logic
         );
 end entity AxiSoc7000Core;
 
@@ -86,9 +87,15 @@ architecture mapping of AxiSoc7000Core is
     signal dmaCtrlWriteMasters : AxiLiteWriteMasterArray(2 downto 0);
     signal dmaCtrlWriteSlaves  : AxiLiteWriteSlaveArray(2 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
+    -- Use local signal (buffer) as port is passed to output and other entities in this module
+    signal pl_rst_sig : sl := '0';
+
     signal dma_irq : sl;
 
 begin
+
+    -- Assign local reset signal to output
+    pl_rst <= pl_rst_sig;
 
     ----------
     -- AXI CPU
@@ -143,7 +150,7 @@ begin
                 dmaWriteSlave  => dmaWriteSlave,
 
                 -- Reset
-                reset_l => not reset    -- Convert to active low reset
+                reset_l => not pl_rst_sig   -- Convert to active low reset
                 );
 
     end generate;
@@ -158,8 +165,10 @@ begin
         port map(
             -- Global pl clock
             pl_clk         => pl_clk,
-            -- Global pl reset
-            pl_rst         => reset,
+            -- User commanded reset generated through AxiVersion (asseratable via register access)
+            userResetOut   => pl_rst_sig,
+            -- Global pl reset (looped back)
+            pl_rst         => pl_rst_sig,
             -- Internal AXI4 Interfaces (eventually axiClk domain?)
             regReadMaster  => regReadMaster,
             regReadSlave   => regReadSlave,
@@ -186,7 +195,7 @@ begin
             DMA_BURST_BYTES_G  => DMA_BURST_BYTES_G)
         port map (
             axiClk           => pl_clk,
-            axiRst           => reset,
+            axiRst           => pl_rst_sig,
             -- DMA AXI4 Interfaces (
             axiReadMaster    => dmaReadMaster,
             axiReadSlave     => dmaReadSlave,

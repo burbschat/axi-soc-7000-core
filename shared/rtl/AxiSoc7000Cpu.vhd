@@ -299,8 +299,34 @@ begin
             axi_dma_wstrb(7 downto 0)   => dmaWriteMaster.wstrb(AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
             axi_dma_wvalid              => dmaWriteMaster.wvalid,
 
-            -- Reset
+            -- Reset (only to IP block in the BD, not the CPU itself)
             reset_l                   => reset_l
             );
+
+    -- Note: No idea if below PLL settings work
+    -- TODO: Adjust block design and get clocks from there? For the time being everything is synchronous to ADC clock
+    -- U_Pll : entity surf.ClockManager7
+    --     generic map(
+    --         TPD_G             => TPD_G,
+    --         TYPE_G            => "PLL",
+    --         INPUT_BUFG_G      => true,
+    --         FB_BUFG_G         => true,
+    --         RST_IN_POLARITY_G => '0',   -- Active LOW reset
+    --         NUM_CLOCKS_G      => 2,
+    --         -- MMCM attributes
+    --         CLKIN_PERIOD_G    => 10.0,  -- in ns (100 MHz)
+    --         CLKFBOUT_MULT_G   => 4,     -- 400 MHz = 4 x 100 MHz
+    --         -- Adjust as required
+    --         CLKOUT0_DIVIDE_G  => 4,     -- 100 MHz = 400 MHz / 4
+    --         CLKOUT1_DIVIDE_G  => 2      -- 200 MHz = 400 MHz / 2
+    --         )
+    --     port map(
+    --         clkIn     => FCLK,          -- Break out FCLK from ZYNQ7 block?
+    --         rstIn     => FCLK_RESET  -- Break out FCLK reset from ZYNQ7 block?
+    --         clkOut(0) => somethingClk,
+    --         clkOut(1) => somethingElseClk,
+    --         rstOut(0) => somethingRst,
+    --         rstOut(1) => somethingElseRst,
+    --         );
 
 end architecture mapping;

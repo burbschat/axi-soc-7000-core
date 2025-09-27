@@ -15,7 +15,7 @@ entity AxiTestRegister is
         TPD_G : time := 1 ns);
     port (
         -- PL clock
-        pl_clk          : in  sl;
+        axilClk          : in  sl;
         -- AXI-Lite Interface
         axilReadMaster  : in  AxiLiteReadMasterType;
         axilReadSlave   : out AxiLiteReadSlaveType;
@@ -82,9 +82,9 @@ begin
 
     end process comb;
 
-    seq : process (pl_clk) is
+    seq : process (axilClk) is
     begin
-        if rising_edge(pl_clk) then
+        if rising_edge(axilClk) then
             r <= rin after TPD_G;
         end if;
     end process seq;

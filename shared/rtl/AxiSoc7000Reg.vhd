@@ -18,9 +18,9 @@ use unisim.vcomponents.all;
 
 entity AxiSoc7000Reg is
     generic (
-        TPD_G           : time             := 1 ns;
-        BUILD_INFO_G    : BuildInfoType
-        -- AXI_BASE_ADDR_G : slv(31 downto 0) := AXIL_REG_BASE_ADDR_C
+        TPD_G        : time := 1 ns;
+        BUILD_INFO_G : BuildInfoType
+     -- AXI_BASE_ADDR_G : slv(31 downto 0) := AXIL_REG_BASE_ADDR_C
         );
     port (
         -- Global pl clock
@@ -39,7 +39,9 @@ entity AxiSoc7000Reg is
         appReadMaster  : out AxiLiteReadMasterType;
         appReadSlave   : in  AxiLiteReadSlaveType;
         appWriteMaster : out AxiLiteWriteMasterType;
-        appWriteSlave  : in  AxiLiteWriteSlaveType
+        appWriteSlave  : in  AxiLiteWriteSlaveType;
+        -- Application Force reset
+        userResetOut   : out sl
         );
 end entity AxiSoc7000Reg;
 
@@ -175,9 +177,9 @@ begin
             axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
             axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
             axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
-            axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C)
-         -- Optional: User Reset
-         --userReset      => cardResetOut,
+            axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C),
+            -- Optional: User Reset
+            userReset      => userResetOut
          -- Optional: user values
          -- userValues     => userValues
             );
