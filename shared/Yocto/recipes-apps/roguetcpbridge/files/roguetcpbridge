@@ -49,6 +49,7 @@ class ZynqTcpServer(object):
                 print( f'Starting Stream TcpServer at Port={port} and Port={port+1} for DMA[{lane}][{tdest}]' )
                 self.dmaStream[lane][tdest] = rogue.hardware.axi.AxiStreamDma('/dev/axi_stream_dma_0', 256*lane+tdest, True)
                 self.dataServer[lane][tdest] = rogue.interfaces.stream.TcpServer('*',port)
+                # Connect the stream (both directions)
                 self.dmaStream[lane][tdest] == self.dataServer[lane][tdest]
 
     def __enter__(self):
