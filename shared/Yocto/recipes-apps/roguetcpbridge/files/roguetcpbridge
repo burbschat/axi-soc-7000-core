@@ -108,7 +108,7 @@ if __name__ == "__main__":
         "--lane",
         type     = int,
         required = False,
-        default  = 2,
+        default  = 1,
         help     = "# of DMA Lanes",
     )
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         "--tdest",
         type     = int,
         required = False,
-        default  = 32,
+        default  = 1,  # Increase as required
         help     = "# of TDEST per lane",
     )
 
