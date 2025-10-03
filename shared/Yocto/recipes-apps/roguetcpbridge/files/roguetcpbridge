@@ -51,24 +51,6 @@ class ZynqTcpServer(object):
                 self.dataServer[lane][tdest] = rogue.interfaces.stream.TcpServer('*',port)
                 self.dmaStream[lane][tdest] == self.dataServer[lane][tdest]
 
-        # PyRFdc Integration
-        self.apiMap = None
-        self.rfdcApi = None
-
-        try:
-            import PyRFdc
-            print("PyRFdc module imported successfully.")
-
-            # Memory server on port [9002:9003]
-            self.apiMap = rogue.interfaces.memory.TcpServer('*', 9002)
-            self.rfdcApi = PyRFdc.PyRFdc()
-            self.apiMap >> self.rfdcApi
-
-        except (ImportError, ModuleNotFoundError):
-            print("PyRFdc module is not installed.")
-        except Exception as e:
-            print(f"Error initializing PyRFdc: {e}")
-
     def __enter__(self):
         """Enable using the class as a context manager."""
         return self
