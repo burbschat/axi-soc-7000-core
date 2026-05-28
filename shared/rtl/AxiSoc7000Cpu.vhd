@@ -143,24 +143,22 @@ architecture mapping of AxiSoc7000Cpu is
             axi_dma_arburst : in  std_logic_vector (1 downto 0);
             axi_dma_arcache : in  std_logic_vector (3 downto 0);
             axi_dma_arid    : in  std_logic_vector (5 downto 0);
-            axi_dma_arlen   : in  std_logic_vector (7 downto 0);
-            axi_dma_arlock  : in  std_logic_vector (0 downto 0);
+            axi_dma_arlen   : in  std_logic_vector (3 downto 0);
+            axi_dma_arlock  : in  std_logic_vector (1 downto 0);
             axi_dma_arprot  : in  std_logic_vector (2 downto 0);
             axi_dma_arqos   : in  std_logic_vector (3 downto 0);
             axi_dma_arready : out std_logic;
-            axi_dma_arregion: in  std_logic_vector (3 downto 0);
             axi_dma_arsize  : in  std_logic_vector (2 downto 0);
             axi_dma_arvalid : in  std_logic;
             axi_dma_awaddr  : in  std_logic_vector (31 downto 0);
             axi_dma_awburst : in  std_logic_vector (1 downto 0);
             axi_dma_awcache : in  std_logic_vector (3 downto 0);
             axi_dma_awid    : in  std_logic_vector (5 downto 0);
-            axi_dma_awlen   : in  std_logic_vector (7 downto 0);
-            axi_dma_awlock  : in  std_logic_vector (0 downto 0);
+            axi_dma_awlen   : in  std_logic_vector (3 downto 0);
+            axi_dma_awlock  : in  std_logic_vector (1 downto 0);
             axi_dma_awprot  : in  std_logic_vector (2 downto 0);
             axi_dma_awqos   : in  std_logic_vector (3 downto 0);
             axi_dma_awready : out std_logic;
-            axi_dma_awregion: in  std_logic_vector (3 downto 0);
             axi_dma_awsize  : in  std_logic_vector (2 downto 0);
             axi_dma_awvalid : in  std_logic;
             axi_dma_bid     : out std_logic_vector (5 downto 0);
@@ -174,13 +172,14 @@ architecture mapping of AxiSoc7000Cpu is
             axi_dma_rresp   : out std_logic_vector (1 downto 0);
             axi_dma_rvalid  : out std_logic;
             axi_dma_wdata   : in  std_logic_vector (63 downto 0);
+            axi_dma_wid     : in  std_logic_vector (5 downto 0);
             axi_dma_wlast   : in  std_logic;
             axi_dma_wready  : out std_logic;
             axi_dma_wstrb   : in  std_logic_vector (7 downto 0);
             axi_dma_wvalid  : in  std_logic;
 
             -- Reset
-            reset_l           : in    std_logic
+            reset_l : in std_logic
             );
     end component AxiSoc7000CpuCore;
 
@@ -262,24 +261,22 @@ begin
             axi_dma_arburst(1 downto 0) => dmaReadMaster.arburst,
             axi_dma_arcache(3 downto 0) => dmaReadMaster.arcache,
             axi_dma_arid(5 downto 0)    => dmaReadMaster.arid(5 downto 0),
-            axi_dma_arlen(7 downto 0)   => dmaReadMaster.arlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
-            axi_dma_arlock(0 downto 0)  => (others => '0'),
+            axi_dma_arlen(3 downto 0)   => dmaReadMaster.arlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
+            axi_dma_arlock(1 downto 0)  => (others => '0'),
             axi_dma_arprot(2 downto 0)  => dmaReadMaster.arprot,
             axi_dma_arqos(3 downto 0)   => dmaReadMaster.arqos,
             axi_dma_arready             => dmaReadSlave.arready,
-            axi_dma_arregion(3 downto 0)=> (others => '0'),  -- Regions unused but can't be disabled in protocol convert block
             axi_dma_arsize(2 downto 0)  => dmaReadMaster.arsize,
             axi_dma_arvalid             => dmaReadMaster.arvalid,
             axi_dma_awaddr(31 downto 0) => dmaWriteMaster.awaddr(31 downto 0),
             axi_dma_awburst(1 downto 0) => dmaWriteMaster.awburst,
             axi_dma_awcache(3 downto 0) => dmaWriteMaster.awcache,
             axi_dma_awid(5 downto 0)    => dmaWriteMaster.awid(5 downto 0),
-            axi_dma_awlen(7 downto 0)   => dmaWriteMaster.awlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
-            axi_dma_awlock(0 downto 0)  => (others => '0'),
+            axi_dma_awlen(3 downto 0)   => dmaWriteMaster.awlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
+            axi_dma_awlock(1 downto 0)  => (others => '0'),
             axi_dma_awprot(2 downto 0)  => dmaWriteMaster.awprot,
             axi_dma_awqos(3 downto 0)   => dmaWriteMaster.awqos,
             axi_dma_awready             => dmaWriteSlave.awready,
-            axi_dma_awregion(3 downto 0)=> (others => '0'),  -- Regions unused but can't be disabled in protocol convert block
             axi_dma_awsize(2 downto 0)  => dmaWriteMaster.awsize,
             axi_dma_awvalid             => dmaWriteMaster.awvalid,
             axi_dma_bid(5 downto 0)     => dmaWriteSlave.bid(5 downto 0),
@@ -293,14 +290,14 @@ begin
             axi_dma_rresp(1 downto 0)   => dmaReadSlave.rresp,
             axi_dma_rvalid              => dmaReadSlave.rvalid,
             axi_dma_wdata(63 downto 0)  => dmaWriteMaster.wdata(8*AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
-            -- AXI4 has no WID. If we only ever write to PS from PL, setting id to 0 is fine?
+            axi_dma_wid                 => (others => '0'),  -- Fixed wid as master is AXI4
             axi_dma_wlast               => dmaWriteMaster.wlast,
             axi_dma_wready              => dmaWriteSlave.wready,
             axi_dma_wstrb(7 downto 0)   => dmaWriteMaster.wstrb(AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
             axi_dma_wvalid              => dmaWriteMaster.wvalid,
 
             -- Reset (only to IP block in the BD, not the CPU itself)
-            reset_l                   => reset_l
+            reset_l => reset_l
             );
 
     -- Note: No idea if below PLL settings work

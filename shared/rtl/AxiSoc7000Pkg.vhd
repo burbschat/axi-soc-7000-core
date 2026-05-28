@@ -30,7 +30,7 @@ package AxiSoc7000Pkg is
        ADDR_WIDTH_C => 32,               -- 32-bit address interface
        DATA_BYTES_C => 8,                -- 64-bit data interface
        ID_BITS_C    => 4,                -- Up to 16 DMA IDS (TODO: What is this one?)
-       LEN_BITS_C   => 8);               -- 8-bit awlen/arlen interface (Rather 4 to ensure compat. with CPU AXI3 interface? But this won't work with translation BD wrapper?)
+       LEN_BITS_C   => 4);               -- 8-bit awlen/arlen interface (4 to ensure compat. with CPU AXI3 interface)
 
     -- DMA AXI Stream Configuration
     constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (

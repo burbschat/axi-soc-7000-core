@@ -15,14 +15,14 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 
 entity AxiSoc7000Dma is
     generic (
-        TPD_G              : time                       := 1 ns;
-        DMA_BURST_BYTES_G  : positive range 256 to 4096 := 256;
-        DMA_SIZE_G         : positive range 1 to 8      := 1;
-        INT_PIPE_STAGES_G  : natural range 0 to 1       := 1;
-        PIPE_STAGES_G      : natural range 0 to 1       := 1;
-        DESC_SYNTH_MODE_G  : string                     := "xpm";  -- TODO: Probably not available on 7series?
-        DESC_MEMORY_TYPE_G : string                     := "block";
-        DESC_ARB_G         : boolean                    := false);  -- false = Round robin to help with timing
+        TPD_G              : time                   := 1 ns;
+        DMA_BURST_BYTES_G  : positive range 1 to 16 := 16;
+        DMA_SIZE_G         : positive range 1 to 8  := 1;
+        INT_PIPE_STAGES_G  : natural range 0 to 1   := 1;
+        PIPE_STAGES_G      : natural range 0 to 1   := 1;
+        DESC_SYNTH_MODE_G  : string                 := "xpm";  -- TODO: Probably not available on 7series?
+        DESC_MEMORY_TYPE_G : string                 := "block";
+        DESC_ARB_G         : boolean                := false);  -- false = Round robin to help with timing
     port (
         -- Clock and Reset
         axiClk           : in  sl;
@@ -91,34 +91,41 @@ begin
     -- AXI Muxes
     ------------
     -- TODO: Add FIFOs
+    -- No fifos are the problem?
 
-    U_WritePathMux : entity surf.AxiWritePathMux
-        generic map (
-            TPD_G        => TPD_G,
-            NUM_SLAVES_G => DMA_SIZE_G+2)
-        port map (
-            axiClk           => axiClk,
-            axiRst           => axiRst,
-            -- Slaves
-            sAxiWriteMasters => axiWriteMasters,
-            sAxiWriteSlaves  => axiWriteSlaves,
-            -- Master
-            mAxiWriteMaster  => axiWriteMaster,
-            mAxiWriteSlave   => axiWriteSlave);
+    -- U_WritePathMux : entity surf.AxiWritePathMux
+    --     generic map (
+    --         TPD_G        => TPD_G,
+    --         NUM_SLAVES_G => DMA_SIZE_G+2)
+    --     port map (
+    --         axiClk           => axiClk,
+    --         axiRst           => axiRst,
+    --         -- Slaves
+    --         sAxiWriteMasters => axiWriteMasters,
+    --         sAxiWriteSlaves  => axiWriteSlaves,
+    --         -- Master
+    --         mAxiWriteMaster  => axiWriteMaster,
+    --         mAxiWriteSlave   => axiWriteSlave);
+    --
+    -- U_ReadPathMux : entity surf.AxiReadPathMux
+    --     generic map (
+    --         TPD_G        => TPD_G,
+    --         NUM_SLAVES_G => DMA_SIZE_G+2)
+    --     port map (
+    --         axiClk          => axiClk,
+    --         axiRst          => axiRst,
+    --         -- Slaves
+    --         sAxiReadMasters => axiReadMasters,
+    --         sAxiReadSlaves  => axiReadSlaves,
+    --         -- Master
+    --         mAxiReadMaster  => axiReadMaster,
+    --         mAxiReadSlave   => axiReadSlave);
 
-    U_ReadPathMux : entity surf.AxiReadPathMux
-        generic map (
-            TPD_G        => TPD_G,
-            NUM_SLAVES_G => DMA_SIZE_G+2)
-        port map (
-            axiClk          => axiClk,
-            axiRst          => axiRst,
-            -- Slaves
-            sAxiReadMasters => axiReadMasters,
-            sAxiReadSlaves  => axiReadSlaves,
-            -- Master
-            mAxiReadMaster  => axiReadMaster,
-            mAxiReadSlave   => axiReadSlave);
+    -- Hard code channel 1 connected through...
+    axiWriteMaster <= axiWriteMasters(1);
+    axiWriteSlaves(1) <= axiWriteSlave;
+    axiReadMaster <= axiReadMasters(1);
+    axiReadSlaves(1) <= axiReadSlave;
 
     -----------
     -- DMA Core
@@ -127,11 +134,11 @@ begin
     U_V2Gen : entity surf.AxiStreamDmaV2
         generic map (
             TPD_G              => TPD_G,
-            DESC_AWIDTH_G      => 12,   -- 4096 entries
+            DESC_AWIDTH_G      => 12,           -- 4096 entries
             DESC_ARB_G         => DESC_ARB_G,
             DESC_SYNTH_MODE_G  => DESC_SYNTH_MODE_G,
             DESC_MEMORY_TYPE_G => DESC_MEMORY_TYPE_G,
-            AXIL_BASE_ADDR_G   => x"00000000", -- Not used??
+            AXIL_BASE_ADDR_G   => x"00000000",  -- Not used??
             AXI_READY_EN_G     => false,
             AXIS_READY_EN_G    => false,
             AXIS_CONFIG_G      => INT_DMA_AXIS_CONFIG_C,

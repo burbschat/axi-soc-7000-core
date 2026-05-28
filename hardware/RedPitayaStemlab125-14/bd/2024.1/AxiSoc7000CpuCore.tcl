@@ -242,13 +242,13 @@ proc create_root_design { parentCell } {
    CONFIG.HAS_REGION {1} \
    CONFIG.HAS_RRESP {1} \
    CONFIG.HAS_WSTRB {1} \
-   CONFIG.ID_WIDTH {0} \
+   CONFIG.ID_WIDTH {6} \
    CONFIG.MAX_BURST_LENGTH {16} \
    CONFIG.NUM_READ_OUTSTANDING {8} \
    CONFIG.NUM_READ_THREADS {1} \
    CONFIG.NUM_WRITE_OUTSTANDING {8} \
    CONFIG.NUM_WRITE_THREADS {1} \
-   CONFIG.PROTOCOL {AXI4} \
+   CONFIG.PROTOCOL {AXI3} \
    CONFIG.READ_WRITE_MODE {READ_WRITE} \
    CONFIG.RUSER_BITS_PER_BYTE {0} \
    CONFIG.RUSER_WIDTH {0} \
@@ -456,28 +456,10 @@ proc create_root_design { parentCell } {
   ] $axi_protocol_convert_1
 
 
-  # Create instance: axi_protocol_convert_2, and set properties
-  set axi_protocol_convert_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_2 ]
-  set_property -dict [list \
-    CONFIG.ADDR_WIDTH {32} \
-    CONFIG.ARUSER_WIDTH {0} \
-    CONFIG.AWUSER_WIDTH {0} \
-    CONFIG.DATA_WIDTH {64} \
-    CONFIG.ID_WIDTH {6} \
-    CONFIG.MI_PROTOCOL {AXI3} \
-    CONFIG.READ_WRITE_MODE {READ_WRITE} \
-    CONFIG.RUSER_WIDTH {0} \
-    CONFIG.SI_PROTOCOL {AXI4} \
-    CONFIG.TRANSLATION_MODE {2} \
-    CONFIG.WUSER_WIDTH {0} \
-  ] $axi_protocol_convert_2
-
-
   # Create interface connections
-  connect_bd_intf_net -intf_net S_AXI_0_1 [get_bd_intf_ports axi_dma] [get_bd_intf_pins axi_protocol_convert_2/S_AXI]
+  connect_bd_intf_net -intf_net axi_dma_1 [get_bd_intf_ports axi_dma] [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
   connect_bd_intf_net -intf_net axi_protocol_convert_0_M_AXI [get_bd_intf_ports axi_lite] [get_bd_intf_pins axi_protocol_convert_0/M_AXI]
   connect_bd_intf_net -intf_net axi_protocol_convert_1_M_AXI [get_bd_intf_ports axi_dmactrl] [get_bd_intf_pins axi_protocol_convert_1/M_AXI]
-  connect_bd_intf_net -intf_net axi_protocol_convert_2_M_AXI [get_bd_intf_pins axi_protocol_convert_2/M_AXI] [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins processing_system7_0/M_AXI_GP0] [get_bd_intf_pins axi_protocol_convert_0/S_AXI]
@@ -485,8 +467,8 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net dma_irq_1 [get_bd_ports dma_irq] [get_bd_pins processing_system7_0/IRQ_F2P]
-  connect_bd_net -net pl_clk_1 [get_bd_ports pl_clk] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins axi_protocol_convert_1/aclk] [get_bd_pins processing_system7_0/M_AXI_GP1_ACLK] [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] [get_bd_pins axi_protocol_convert_2/aclk]
-  connect_bd_net -net reset_1 [get_bd_ports reset_l] [get_bd_pins axi_protocol_convert_0/aresetn] [get_bd_pins axi_protocol_convert_1/aresetn] [get_bd_pins axi_protocol_convert_2/aresetn]
+  connect_bd_net -net pl_clk_1 [get_bd_ports pl_clk] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins axi_protocol_convert_1/aclk] [get_bd_pins processing_system7_0/M_AXI_GP1_ACLK] [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK]
+  connect_bd_net -net reset_1 [get_bd_ports reset_l] [get_bd_pins axi_protocol_convert_0/aresetn] [get_bd_pins axi_protocol_convert_1/aresetn]
 
   # Create address segments
   assign_bd_address -offset 0xB0000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_dmactrl/Reg] -force
@@ -497,6 +479,7 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
+  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -508,6 +491,4 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
-
-common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
