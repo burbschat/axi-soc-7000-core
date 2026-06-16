@@ -348,7 +348,7 @@ fi
 bitbake petalinux-image-minimal || die "bitbake petalinux-image-minimal returned non-zero. Aborting."
 
 # Resolve deploy directory: honour BitBake's TMPDIR override if set
-deploy_dir="${TMPDIR:-$proj_dir/build/tmp}/deploy/images/zynqmp-user"
+deploy_dir="${TMPDIR:-$proj_dir/build/tmp}/deploy/images/zynq-user"
 
 # Check if we need to manual run xilinx-bootbin
 if [ ! -f "$deploy_dir/boot.bin" ]; then
