@@ -114,7 +114,7 @@ fi
 # somewhere so I can't forget to change them!
 # Or compile with them as defaults...
 insmod /lib/modules/$(uname -r)/updates/axi_memory_map.ko plMinAddr=0x40000000 plMaxAddr=0x7FFFFFFF
-insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko cfgRxCount0=32 cfgTxCount0=16
+insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko cfgTxCount0=@DMA_TX_BUFF_COUNT@ cfgRxCount0=@DMA_RX_BUFF_COUNT@ cfgSize0=@DMA_BUFF_SIZE@
 
 ##############################################################################
 
@@ -128,7 +128,7 @@ insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko cfgRxCount0=32 cfgTxCo
 #    /app/runtimeApp
 # else
 #    echo "Starting the generic rogue TCP bridge Application"
-#    /usr/bin/roguetcpbridge
+#    /usr/bin/roguetcpbridge --lane @DMA_NUM_LANES@ --tdest @DMA_NUM_DEST@
 # fi
 
 ##############################################################################

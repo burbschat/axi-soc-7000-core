@@ -9,9 +9,29 @@
 ## the terms contained in the LICENSE.txt file.
 ##############################################################################
 
+function show_help {
+   echo "USAGE: $0 -p PATH -n NAME -h HWTYPE -x XSA [-l LANES] [-d DESTS] [-t TXCNT] [-r RXCNT] [-s BUFFSZ] [-c]"
+   echo " -p PATH      - Path to the build dir (required)"
+   echo " -n NAME      - Target name (required)"
+   echo " -h HWTYPE    - Hardware type, must match directory name in axi-soc-ultra-plus-core/hardware (required)"
+   echo " -x XSA       - Path to the XSA file (required)"
+   echo " -T top       - Path to the firmware/ directory. This is usually just above the build/ directory (required)"
+   echo " -l LANES     - Num DMA lanes"
+   echo " -d DESTS     - Num dests"
+   echo " -t TXCNT     - Num TX buffers"
+   echo " -r RXCNT     - Num RX buffers"
+   echo " -s BUFFSZ    - DMA buffer size"
+   echo " -c           - Force reconfigure if the project has already been configured"
+   echo " -f           - Set 'true' if ramdisk should be used, otherwise set 'false'"
+   echo " -H           - Show this help text"
+   exit 1
+}
+
+# Use ramdisk by default
 fsRamdisk=true # true for ramdisk, false for root on SD-card
 
-while getopts p:n:h:x:l:d:t:r:s:f: flag
+doConfigure=0
+while getopts p:n:h:x:l:d:t:r:s:f:cHT: flag
 do
     case "${flag}" in
         p) path=${OPTARG};;
@@ -24,8 +44,17 @@ do
         r) dmaRxBuffCount=${OPTARG};;
         s) dmaBuffSize=${OPTARG};;
         f) fsRamdisk=${OPTARG};;
+        c) doConfigure=1;;
+        T) projTop=${OPTARG};;
+        H) show_help;;
     esac
 done
+
+if [ -z "$name" ] || [ -z "$path" ] || [ -z "$hwType" ] || [ -z "$xsa" ] || [ -z "$projTop" ]
+then
+   echo "Missing required parameter"
+   show_help
+fi
 
 ##############################################################################
 # Generate commonly used local variables
@@ -37,10 +66,10 @@ axi_soc_7000_core=$(dirname $(readlink -f $0))
 aes_stream_drivers=$(realpath $axi_soc_7000_core/../aes-stream-drivers)
 hwDir=$axi_soc_7000_core/hardware/$hwType
 imageDump=${xsa%.*}.linux.tar.gz
-rootfsDump=${xsa%.*}.rootfs.tar.gz # Dump rootfs, used for root on SD-card
-bitstream7Series=${xsa%.*}.bin # Bitstream in format for 7Series Zynq
 proj_dir=$(realpath "$path/$Name")
 image_dir="$proj_dir/build/tmp/deploy/images/zynq-user"
+rootfsDump=${xsa%.*}.rootfs.tar.gz # Dump rootfs, used for root on SD-card
+bitstream7Series=${xsa%.*}.bin # Bitstream in format for 7Series Zynq
 
 ##############################################################################
 # Check total buffer size
@@ -71,6 +100,15 @@ if [ $missing -ne 0 ]; then
    echo "sudo apt install -y bash curl chrpath diffstat git gzip liblz4-tool u-boot-tools"
    exit 1
 fi
+
+##############################################################################
+# Utils
+##############################################################################
+
+function die {
+    echo "$@"
+    exit 1
+}
 
 ##############################################################################
 # Misc. file and dir checking
@@ -142,115 +180,198 @@ fi
 # Create the Yocto project
 ##############################################################################
 
-# Remove older build and start from clean state
-if [ -d $proj_dir ]
+# Check for XSA mismatch
+if [ -f $proj_dir/.build_stamp ]
 then
-   echo "Remove existing project if it already exists ..."
-   rm -rf $proj_dir
+   FILE=$(cat $proj_dir/.build_stamp)
+   if [ "$FILE" != "$(readlink -f "$xsa")" ]
+   then
+      echo "XSA file does not match .build_stamp; building from scratch..."
+      doConfigure=1
+   fi
 fi
 
-# Create the project
-mkdir $proj_dir && cd $proj_dir
-yes y | repo init -u https://github.com/Xilinx/yocto-manifests.git -b rel-v2025.1
-repo sync
+# Configure if we haven't already, or start from scratch
+if [ ! -d $proj_dir ] || [ $doConfigure -eq 1 ]
+then
 
-# Xilinx environment specific Yocto setup and automation scripts
-BDIR=build source setupsdk > /dev/null
+   # Remove older build and start from clean state
+   if [ -d $proj_dir ]
+   then
+      echo "Remove existing project if it already exists ..."
+      rm -rf $proj_dir
+   fi
 
-##############################################################################
-# Importing Hardware Configuration
-##############################################################################
+   # Create the project
+   mkdir $proj_dir && cd $proj_dir
+   yes y | repo init -u https://github.com/Xilinx/yocto-manifests.git -b rel-v2025.1
+   repo sync
 
-# Create a new layer for your custom hardware configuration
-bitbake-layers create-layer $proj_dir/sources/meta-user
-bitbake-layers add-layer    $proj_dir/sources/meta-user
+   # Write out a build stamp with the XSA path
+   echo "$(readlink -f "$xsa")" > $proj_dir/.build_stamp
 
-# Create the conf/machine/zynq-user.conf
-mkdir $proj_dir/sources/meta-user/conf/machine
-cp -rfL $axi_soc_7000_core/shared/Yocto/zynq-user.conf $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
-cat $hwDir/Yocto/zynq-user.conf                           >> $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
-echo "HDF_PATH = \"$xsa\""                                >> $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
+   # Xilinx environment specific Yocto setup and automation scripts
+   BDIR=build source setupsdk > /dev/null
 
-# Set the machine & hostname in conf/local.conf
-sed -i "/MACHINE ??=/c\MACHINE ??= \"zynq-user\"" $proj_dir/build/conf/local.conf
-echo ""                                          >> $proj_dir/build/conf/local.conf
-echo "# Custom Configurations "                  >> $proj_dir/build/conf/local.conf
-echo "hostname:pn-base-files = \"$Name\""        >> $proj_dir/build/conf/local.conf
+   ##############################################################################
+   # Importing Hardware Configuration
+   ##############################################################################
 
-# Keep the sstate-cache in a location outside the proj_dir to make sure it is
-# not deleted when re-running the build. Use of sstate-cache allows for re-use
-# of already build components which should significantly speed up build time
-# (except for the first time).
-sstate_dir="$path/sstate-cache"
-sed -i "/^#SSTATE_DIR ?= /c\SSTATE_DIR ?= \"$sstate_dir\"" $proj_dir/build/conf/local.conf
-# To the same for downloads directory
-dl_dir="$path/downloads"
-sed -i "/^#DL_DIR ?= /c\DL_DIR ?= \"$dl_dir\"" $proj_dir/build/conf/local.conf
+   # Create a new layer for your custom hardware configuration
+   bitbake-layers create-layer $proj_dir/sources/meta-user
+   bitbake-layers add-layer    $proj_dir/sources/meta-user
 
-##############################################################################
-# Add the hardware specific BSP
-##############################################################################
+   # Create the conf/machine/zynq-user.conf
+   mkdir $proj_dir/sources/meta-user/conf/machine
+   cp -rfL $axi_soc_7000_core/shared/Yocto/zynq-user.conf $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
+   cat $hwDir/Yocto/zynq-user.conf                           >> $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
+   echo "HDF_PATH = \"$xsa\""                                >> $proj_dir/sources/meta-user/conf/machine/zynq-user.conf
 
-# Copy the meta layers from local source
-cp -rfL $hwDir/Yocto/recipes-bsp $proj_dir/sources/meta-user/.
+   # Set the machine & hostname in conf/local.conf
+   sed -i "/MACHINE ??=/c\MACHINE ??= \"zynq-user\""   $proj_dir/build/conf/local.conf
+   echo ""                                          >> $proj_dir/build/conf/local.conf
+   echo "# Custom Configurations "                  >> $proj_dir/build/conf/local.conf
+   echo "hostname:pn-base-files = \"$Name\""        >> $proj_dir/build/conf/local.conf
 
-##############################################################################
-# Add the axi-stream-dma & axi_memory_map kernel modules
-##############################################################################
+   # Record useful variables
+   echo "PROJ_TOP=\"$projTop\"" >> $proj_dir/build/conf/local.conf
 
-# Copy the meta layers from local source
-cp -rfL $aes_stream_drivers/Yocto/recipes-kernel $proj_dir/sources/meta-user/.
+   # Keep the sstate-cache in a location outside the proj_dir to make sure it is
+   # not deleted when re-running the build. Use of sstate-cache allows for re-use
+   # of already build components which should significantly speed up build time
+   # (except for the first time).
+   sstate_dir="$path/sstate-cache"
+   sed -i "/^#SSTATE_DIR ?= /c\SSTATE_DIR ?= \"$sstate_dir\"" $proj_dir/build/conf/local.conf
+   # To the same for downloads directory
+   dl_dir="$path/downloads"
+   sed -i "/^#DL_DIR ?= /c\DL_DIR ?= \"$dl_dir\"" $proj_dir/build/conf/local.conf
 
-# Update DMA engine with user configuration
-sed -i "s/int cfgTxCount0 = 128;/int cfgTxCount0 = $dmaTxBuffCount;/"  $proj_dir/sources/meta-user/recipes-kernel/axistreamdma/files/axistreamdma.c
-sed -i "s/int cfgRxCount0 = 128;/int cfgRxCount0 = $dmaRxBuffCount;/"  $proj_dir/sources/meta-user/recipes-kernel/axistreamdma/files/axistreamdma.c
-sed -i "s/int cfgSize0    = 2097152;/int cfgSize0    = $dmaBuffSize;/" $proj_dir/sources/meta-user/recipes-kernel/axistreamdma/files/axistreamdma.c
+   ##############################################################################
+   # Add the hardware specific BSP
+   ##############################################################################
 
-##############################################################################
-# Add axi-soc-7000-core's recipes-apps
-##############################################################################
+   # Link the meta layers from local source
+   ln -s $hwDir/Yocto/recipes-bsp $proj_dir/sources/meta-user/recipes-bsp
 
-# Copy the meta layers from local source
-cp -rfL $axi_soc_7000_core/shared/Yocto/recipes-apps $proj_dir/sources/meta-user/.
+   ##############################################################################
+   # Add the axi-stream-dma & axi_memory_map kernel modules
+   ##############################################################################
 
-# Update Application with user configuration
-sed -i "s/default  = 2,/default  = $numLane,/"  $proj_dir/sources/meta-user/recipes-apps/roguetcpbridge/files/roguetcpbridge
-sed -i "s/default  = 32,/default  = $numDest,/" $proj_dir/sources/meta-user/recipes-apps/roguetcpbridge/files/roguetcpbridge
+   # Copy the meta layers from local source
+   ln -s $aes_stream_drivers/Yocto/recipes-kernel $proj_dir/sources/meta-user/recipes-kernel
+   if [ -d $aes_stream_drivers/Yocto/recipes-tests ]; then
+      ln -s $aes_stream_drivers/Yocto/recipes-tests $proj_dir/sources/meta-user/recipes-tests
+   fi
 
-# Check if including RFDC utility (not needed?)
-# if grep -q 'MACHINE_FEATURES:append = " rfsoc"' "$hwDir/Yocto/zynq-user.conf"; then
-#    echo "MACHINE_FEATURES=rfsoc detected: Including RFDC utility"
-#    echo "IMAGE_INSTALL:append = \" pyrfdc\"" >> $proj_dir/sources/meta-user/conf/layer.conf
-# fi
+   # Set DMA settings in the local.conf
+   echo "DMA_TX_BUFF_COUNT = \"${dmaTxBuffCount}\"" >> $proj_dir/build/conf/local.conf
+   echo "DMA_RX_BUFF_COUNT = \"${dmaRxBuffCount}\"" >> $proj_dir/build/conf/local.conf
+   echo "DMA_BUFF_SIZE = \"${dmaBuffSize}\""        >> $proj_dir/build/conf/local.conf
+
+   # Install the samples/tests
+   echo "IMAGE_INSTALL:append = \" axidmasamples\"" >> $proj_dir/build/conf/local.conf
+
+   ##############################################################################
+   # Add axi-soc-7000-core's recipes-devtools
+   ##############################################################################
+
+   # Copy the meta layers from local source (for now, only a temporary patch for Qemu)
+   cp -rfL $axi_soc_7000_core/shared/Yocto/recipes-devtools $proj_dir/sources/meta-user/.
+
+   ##############################################################################
+   # Add axi-soc-7000-core's recipes-apps
+   ##############################################################################
+
+   # Link the meta layers from local source
+   ln -s $axi_soc_7000_core/shared/Yocto/recipes-apps $proj_dir/sources/meta-user/recipes-apps
+
+   # Update Application with user configuration
+   echo "DMA_NUM_LANES = \"${numLane}\"" >> $proj_dir/build/conf/local.conf
+   echo "DMA_NUM_DEST  = \"${numDest}\"" >> $proj_dir/build/conf/local.conf
+
+   # Install common debugging tools
+   echo "IMAGE_INSTALL:append = \" valgrind perf\"" >> $proj_dir/sources/meta-user/conf/layer.conf
+   echo "EXTRA_IMAGE_FEATURES += \"tools-debug\"" >> $proj_dir/sources/meta-user/conf/layer.conf
+
+   ##############################################################################
+   # Add shared user provided layers
+   ##############################################################################
+
+   if [ -d "$projTop/shared/Yocto" ]
+   then
+      for d in "$projTop/shared/Yocto/meta-"*
+      do
+         if [ -d "$d" ]
+         then
+            echo "Adding layer $d"
+            bitbake-layers add-layer "$d"
+         fi
+      done
+   fi
+
+   ##############################################################################
+   # Add user provided layers for this specific fw target
+   ##############################################################################
+
+   if [ -d "$projTop/targets/$Name" ];
+   then
+      for d in "$projTop/targets/$Name/meta-"*
+      do
+         if [ -d "$d" ]
+         then
+            echo "Adding layer $d"
+            bitbake-layers add-layer "$d"
+         fi
+      done
+   fi
+
+   ##############################################################################
+   # Append any user-provided configuration data
+   ##############################################################################
+   if [ -f "$projTop/shared/Yocto/local.conf" ]
+   then
+      echo -e "\n#====== > $projTop/shared/Yocto/local.conf < ======#" >> "$proj_dir/build/conf/local.conf"
+      cat "$projTop/shared/Yocto/local.conf" >> "$proj_dir/build/conf/local.conf"
+   fi
+else
+   # cd to project dir in preparation for build
+   cd $proj_dir
+
+   # Xilinx environment specific Yocto setup and automation scripts
+   BDIR=build source setupsdk > /dev/null
+fi
 
 ##############################################################################
 # Build Everything!
 ##############################################################################
 
-bitbake petalinux-image-minimal
+bitbake petalinux-image-minimal || die "bitbake petalinux-image-minimal returned non-zero. Aborting."
+
+# Resolve deploy directory: honour BitBake's TMPDIR override if set
+deploy_dir="${TMPDIR:-$proj_dir/build/tmp}/deploy/images/zynqmp-user"
 
 # Check if we need to manual run xilinx-bootbin
-if [ ! -f "$proj_dir/build/tmp/deploy/images/zynq-user/boot.bin" ]; then
-  echo "boot.bin not found. Running bitbake xilinx-bootbin..."
-  bitbake xilinx-bootbin
+if [ ! -f "$deploy_dir/boot.bin" ]; then
+    echo "boot.bin not found. Running bitbake xilinx-bootbin..."
+    bitbake xilinx-bootbin || die "bitbake xilinx-bootbin returned non-zero. Aborting."
 fi
 
 ##############################################################################
 # Package all the images into a .tar.gz
 ##############################################################################
 
-# mkdir custom image dump dir
-mkdir $proj_dir/linux
+# mkdir custom image dump dir (if not existing)
+mkdir -p $proj_dir/linux
 
 # Go to deploy image dir
-cd $proj_dir/build/tmp/deploy/images/zynq-user
+cd $deploy_dir
 
 # Copy over the FSBL, U-boot and .bin (for 7series its bin, not bit!) files
 cp -rfL $bitstream7Series        $proj_dir/linux/system.bin
 cp -rfL boot.bin                 $proj_dir/linux/BOOT.BIN
 cp -rfL boot.scr                 $proj_dir/linux/boot.scr
+# For root filesystem on sd-card, copy over the root filesystem
 if [[ $fsRamdisk == false ]]; then
-    # For root filesystem on sd-card, copy over the root filesystem
     cp -rfL petalinux-image-minimal-zynq-user.tar.gz $rootfsDump
 fi
 
@@ -266,7 +387,7 @@ else
 fi
 mkimage -f image.its $proj_dir/linux/image.ub  > /dev/null
 
-# Default file list (.bin for 7series!)
+# Default file list (.bin, not .bit for 7series!)
 fileList="linux/system.bin linux/BOOT.BIN linux/boot.scr linux/image.ub"
 
 if [[ -v SOC_IP_STATIC ]]; then
@@ -303,3 +424,5 @@ fi
 echo "########################################################################"
 
 ##############################################################################
+
+# vim: et sw=3 ts=3
