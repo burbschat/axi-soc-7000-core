@@ -2,8 +2,8 @@
 # rogue recipe for Yocto
 #
 
-ROGUE_VERSION = "6.6.1"
-ROGUE_MD5SUM  = "0c0a5d4c32ab2cf5bca46edb92d9e13e"
+ROGUE_VERSION = "6.12.0"
+ROGUE_MD5SUM  = "f70be9599efe78407c95be2e016f2397"
 
 SUMMARY = "Recipe to build Rogue"
 HOMEPAGE ="https://github.com/slaclab/rogue"
