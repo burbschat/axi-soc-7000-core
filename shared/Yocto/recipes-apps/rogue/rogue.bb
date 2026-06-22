@@ -2,7 +2,7 @@
 # rogue recipe for Yocto
 #
 
-ROGUE_VERSION = "6.12.0"
+ROGUE_VERSION = "DEBUG"
 ROGUE_MD5SUM  = "f70be9599efe78407c95be2e016f2397"
 
 SUMMARY = "Recipe to build Rogue"
@@ -10,13 +10,11 @@ HOMEPAGE ="https://github.com/slaclab/rogue"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRC_URI = "https://github.com/slaclab/rogue/archive/v${ROGUE_VERSION}.tar.gz"
-SRC_URI[md5sum] = "${ROGUE_MD5SUM}"
-INSANE_SKIP += "src-uri-bad"
+SRC_URI = "file://rogue/"
 
-S = "${WORKDIR}/rogue-${ROGUE_VERSION}"
+S = "${WORKDIR}/rogue"
 PROVIDES = "rogue"
-EXTRA_OECMAKE += "-DROGUE_INSTALL=system -DROGUE_VERSION=v${ROGUE_VERSION}"
+EXTRA_OECMAKE += "-DROGUE_INSTALL=system -DROGUE_VERSION=v${ROGUE_VERSION}, -DNO_ROCEV2=YES -DROGUE_SKIP_PIP_INSTALL=YES"
 
 inherit cmake python3native setuptools3
 

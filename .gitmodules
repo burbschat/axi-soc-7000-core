@@ -1,0 +1,3 @@
+[submodule "shared/Yocto/recipes-apps/rogue/files/rogue"]
+	path = shared/Yocto/recipes-apps/rogue/files/rogue
+	url = git@github.com:slaclab/rogue.git
