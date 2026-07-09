@@ -2,7 +2,8 @@
 # rogue recipe for Yocto
 #
 
-ROGUE_VERSION = "DEBUG"
+ROGUE_VERSION = "0.0.0"
+# ROGUE_VERSION = "6.12.0"
 ROGUE_MD5SUM  = "f70be9599efe78407c95be2e016f2397"
 
 SUMMARY = "Recipe to build Rogue"
