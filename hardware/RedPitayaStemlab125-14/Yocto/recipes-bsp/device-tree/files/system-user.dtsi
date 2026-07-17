@@ -30,6 +30,10 @@
         // 7series: intc
         // Why Xilinx, why?
 		interrupt-parent = <&intc>;
-        dma-coherent;  // Set to use coherent dma ops
+        // AXI HP interfaces are not coherent, so do not set coherent here.
+        // The ACP interface would be coherent so if that is used, coherent can be set 
+        // here (probably) to let the dma driver know so it can initialize memory 
+        // accordingly.
+        // dma-coherent;  // Set to use coherent dma ops
 	};
 };
