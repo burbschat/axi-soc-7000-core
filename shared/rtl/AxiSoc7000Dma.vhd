@@ -25,30 +25,34 @@ entity AxiSoc7000Dma is
         DESC_ARB_G         : boolean                 := false);  -- false = Round robin to help with timing
     port (
         -- Clock and Reset
-        axiClk           : in  sl;
-        axiRst           : in  sl;
+        axiClk : in sl;
+        axiRst : in sl;
+
         -- SOC AXI4 Interfaces (axiClk domain)
-        axiReadMaster    : out AxiReadMasterType;
-        axiReadSlave     : in  AxiReadSlaveType;
-        axiWriteMaster   : out AxiWriteMasterType;
-        axiWriteSlave    : in  AxiWriteSlaveType;
+        axiReadMaster  : out AxiReadMasterType  := AXI_READ_MASTER_INIT_C;
+        axiReadSlave   : in  AxiReadSlaveType   := AXI_READ_SLAVE_FORCE_C;
+        axiWriteMaster : out AxiWriteMasterType := AXI_WRITE_MASTER_INIT_C;
+        axiWriteSlave  : in  AxiWriteSlaveType  := AXI_WRITE_SLAVE_FORCE_C;
+
         -- User General Purpose AXI4 Interfaces (axiClk domain)
-        usrReadMaster    : in  AxiReadMasterType                  := AXI_READ_MASTER_INIT_C;
-        usrReadSlave     : out AxiReadSlaveType                   := AXI_READ_SLAVE_FORCE_C;
-        usrWriteMaster   : in  AxiWriteMasterType                 := AXI_WRITE_MASTER_INIT_C;
-        usrWriteSlave    : out AxiWriteSlaveType                  := AXI_WRITE_SLAVE_FORCE_C;
+        usrReadMaster  : in  AxiReadMasterType  := AXI_READ_MASTER_INIT_C;
+        usrReadSlave   : out AxiReadSlaveType   := AXI_READ_SLAVE_FORCE_C;
+        usrWriteMaster : in  AxiWriteMasterType := AXI_WRITE_MASTER_INIT_C;
+        usrWriteSlave  : out AxiWriteSlaveType  := AXI_WRITE_SLAVE_FORCE_C;
+
         -- AXI4-Lite Interfaces (axiClk domain, one for controls, two for monitoring IB/OB)
-        axilReadMasters  : in  AxiLiteReadMasterArray(2 downto 0);
-        axilReadSlaves   : out AxiLiteReadSlaveArray(2 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_DECERR_C);
-        axilWriteMasters : in  AxiLiteWriteMasterArray(2 downto 0);
-        axilWriteSlaves  : out AxiLiteWriteSlaveArray(2 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
+        axilReadMasters  : in  AxiLiteReadMasterArray(2 downto 0)  := (others => AXI_LITE_READ_MASTER_INIT_C);
+        axilReadSlaves   : out AxiLiteReadSlaveArray(2 downto 0)   := (others => AXI_LITE_READ_SLAVE_EMPTY_DECERR_C);
+        axilWriteMasters : in  AxiLiteWriteMasterArray(2 downto 0) := (others => AXI_LITE_WRITE_MASTER_INIT_C);
+        axilWriteSlaves  : out AxiLiteWriteSlaveArray(2 downto 0)  := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
+
         -- DMA Interfaces (axiClk domain)
-        dmaIrq           : out sl                                 := '0';
-        dmaBuffGrpPause  : out slv(7 downto 0)                    := (others => '0');
-        dmaObMasters     : out AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
-        dmaObSlaves      : in  AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
-        dmaIbMasters     : in  AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
-        dmaIbSlaves      : out AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0));
+        dmaIrq          : out sl                                          := '0';
+        dmaBuffGrpPause : out slv(7 downto 0)                             := (others => '0');
+        dmaObMasters    : out AxiStreamMasterArray(DMA_SIZE_G-1 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
+        dmaObSlaves     : in  AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C);
+        dmaIbMasters    : in  AxiStreamMasterArray(DMA_SIZE_G-1 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
+        dmaIbSlaves     : out AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C));
 end AxiSoc7000Dma;
 
 architecture mapping of AxiSoc7000Dma is
@@ -90,42 +94,40 @@ begin
     ------------
     -- AXI Muxes
     ------------
-    -- TODO: Add FIFOs
-    -- No fifos are the problem?
 
-    -- U_WritePathMux : entity surf.AxiWritePathMux
-    --     generic map (
-    --         TPD_G        => TPD_G,
-    --         NUM_SLAVES_G => DMA_SIZE_G+2)
-    --     port map (
-    --         axiClk           => axiClk,
-    --         axiRst           => axiRst,
-    --         -- Slaves
-    --         sAxiWriteMasters => axiWriteMasters,
-    --         sAxiWriteSlaves  => axiWriteSlaves,
-    --         -- Master
-    --         mAxiWriteMaster  => axiWriteMaster,
-    --         mAxiWriteSlave   => axiWriteSlave);
-    --
-    -- U_ReadPathMux : entity surf.AxiReadPathMux
-    --     generic map (
-    --         TPD_G        => TPD_G,
-    --         NUM_SLAVES_G => DMA_SIZE_G+2)
-    --     port map (
-    --         axiClk          => axiClk,
-    --         axiRst          => axiRst,
-    --         -- Slaves
-    --         sAxiReadMasters => axiReadMasters,
-    --         sAxiReadSlaves  => axiReadSlaves,
-    --         -- Master
-    --         mAxiReadMaster  => axiReadMaster,
-    --         mAxiReadSlave   => axiReadSlave);
+    U_WritePathMux : entity surf.AxiWritePathMux
+        generic map (
+            TPD_G        => TPD_G,
+            NUM_SLAVES_G => DMA_SIZE_G+2)
+        port map (
+            axiClk           => axiClk,
+            axiRst           => axiRst,
+            -- Slaves
+            sAxiWriteMasters => axiWriteMasters,
+            sAxiWriteSlaves  => axiWriteSlaves,
+            -- Master
+            mAxiWriteMaster  => axiWriteMaster,
+            mAxiWriteSlave   => axiWriteSlave);
 
-    -- Hard code channel 1 connected through...
-    axiWriteMaster <= axiWriteMasters(1);
-    axiWriteSlaves(1) <= axiWriteSlave;
-    axiReadMaster <= axiReadMasters(1);
-    axiReadSlaves(1) <= axiReadSlave;
+    U_ReadPathMux : entity surf.AxiReadPathMux
+        generic map (
+            TPD_G        => TPD_G,
+            NUM_SLAVES_G => DMA_SIZE_G+2)
+        port map (
+            axiClk          => axiClk,
+            axiRst          => axiRst,
+            -- Slaves
+            sAxiReadMasters => axiReadMasters,
+            sAxiReadSlaves  => axiReadSlaves,
+            -- Master
+            mAxiReadMaster  => axiReadMaster,
+            mAxiReadSlave   => axiReadSlave);
+
+    -- Hard code channel 1 connected through... for testing without the muxes
+    -- axiWriteMaster <= axiWriteMasters(1);
+    -- axiWriteSlaves(1) <= axiWriteSlave;
+    -- axiReadMaster <= axiReadMasters(1);
+    -- axiReadSlaves(1) <= axiReadSlave;
 
     -----------
     -- DMA Core
@@ -164,6 +166,8 @@ begin
             mAxisMasters    => mAxisMasters,
             mAxisSlaves     => mAxisSlaves,
             mAxisCtrl       => mAxisCtrl,
+            -- TODO: Consider the following (see axi-soc-ultra-plus-core commit 45010123)
+            -- mAxisCtrl       => (others => AXI_STREAM_CTRL_UNUSED_C),
             -- AXI Interfaces, 0 = Desc, 1-CHAN_COUNT_G = DMA
             axiReadMasters  => dmaReadMasters,
             axiReadSlaves   => dmaReadSlaves,
