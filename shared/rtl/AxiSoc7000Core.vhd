@@ -14,12 +14,12 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 
 entity AxiSoc7000Core is
     generic(
-        TPD_G              : time                   := 1 ns;
-        ROGUE_SIM_EN_G     : boolean                := false;
+        TPD_G              : time                    := 1 ns;
+        ROGUE_SIM_EN_G     : boolean                 := false;
         BUILD_INFO_G       : BuildInfoType;
-        DESC_MEMORY_TYPE_G : string                 := "block";
-        DMA_BURST_BYTES_G  : positive range 1 to 16 := 16;
-        DMA_SIZE_G         : positive range 1 to 1  := 1
+        DESC_MEMORY_TYPE_G : string                  := "block";
+        DMA_BURST_BYTES_G  : positive range 1 to 128 := 128;
+        DMA_SIZE_G         : positive range 1 to 1   := 1
         );
     port (
         DDR_cas_n         : inout std_logic;

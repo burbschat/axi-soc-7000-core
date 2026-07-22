@@ -12,6 +12,8 @@
 -- the terms contained in the LICENSE.txt file.
 -------------------------------------------------------------------------------
 
+-- TODO: Remove this module if the crossbar remains unused.
+
 library ieee;
 use ieee.std_logic_1164.all;
 

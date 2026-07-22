@@ -15,14 +15,14 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 
 entity AxiSoc7000Dma is
     generic (
-        TPD_G              : time                   := 1 ns;
-        DMA_BURST_BYTES_G  : positive range 1 to 16 := 16;
-        DMA_SIZE_G         : positive range 1 to 8  := 1;
-        INT_PIPE_STAGES_G  : natural range 0 to 1   := 1;
-        PIPE_STAGES_G      : natural range 0 to 1   := 1;
-        DESC_SYNTH_MODE_G  : string                 := "xpm";  -- TODO: Probably not available on 7series?
-        DESC_MEMORY_TYPE_G : string                 := "block";
-        DESC_ARB_G         : boolean                := false);  -- false = Round robin to help with timing
+        TPD_G              : time                    := 1 ns;
+        DMA_BURST_BYTES_G  : positive range 1 to 128 := 128;
+        DMA_SIZE_G         : positive range 1 to 8   := 1;
+        INT_PIPE_STAGES_G  : natural range 0 to 1    := 1;
+        PIPE_STAGES_G      : natural range 0 to 1    := 1;
+        DESC_SYNTH_MODE_G  : string                  := "xpm";  -- TODO: Probably not available on 7series?
+        DESC_MEMORY_TYPE_G : string                  := "block";
+        DESC_ARB_G         : boolean                 := false);  -- false = Round robin to help with timing
     port (
         -- Clock and Reset
         axiClk           : in  sl;
