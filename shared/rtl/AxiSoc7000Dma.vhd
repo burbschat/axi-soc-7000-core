@@ -71,10 +71,10 @@ architecture mapping of AxiSoc7000Dma is
     signal dmaWriteMasters : AxiWriteMasterArray(DMA_SIZE_G downto 0);
     signal dmaWriteSlaves  : AxiWriteSlaveArray(DMA_SIZE_G downto 0);
 
-    signal axiReadMasters  : AxiReadMasterArray(DMA_SIZE_G+1 downto 0)  := (others => AXI_READ_MASTER_INIT_C);
-    signal axiReadSlaves   : AxiReadSlaveArray(DMA_SIZE_G+1 downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
-    signal axiWriteMasters : AxiWriteMasterArray(DMA_SIZE_G+1 downto 0) := (others => AXI_WRITE_MASTER_INIT_C);
-    signal axiWriteSlaves  : AxiWriteSlaveArray(DMA_SIZE_G+1 downto 0)  := (others => AXI_WRITE_SLAVE_FORCE_C);
+    signal axiReadMasters  : AxiReadMasterArray(DMA_SIZE_G downto 0)  := (others => AXI_READ_MASTER_INIT_C);
+    signal axiReadSlaves   : AxiReadSlaveArray(DMA_SIZE_G downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
+    signal axiWriteMasters : AxiWriteMasterArray(DMA_SIZE_G downto 0) := (others => AXI_WRITE_MASTER_INIT_C);
+    signal axiWriteSlaves  : AxiWriteSlaveArray(DMA_SIZE_G downto 0)  := (others => AXI_WRITE_SLAVE_FORCE_C);
 
     -- Inbound (to CPU) streams after FIFOs
     signal sAxisMasters : AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
@@ -98,7 +98,7 @@ begin
     U_WritePathMux : entity surf.AxiWritePathMux
         generic map (
             TPD_G        => TPD_G,
-            NUM_SLAVES_G => DMA_SIZE_G+2)
+            NUM_SLAVES_G => DMA_SIZE_G+1)
         port map (
             axiClk           => axiClk,
             axiRst           => axiRst,
@@ -112,7 +112,7 @@ begin
     U_ReadPathMux : entity surf.AxiReadPathMux
         generic map (
             TPD_G        => TPD_G,
-            NUM_SLAVES_G => DMA_SIZE_G+2)
+            NUM_SLAVES_G => DMA_SIZE_G+1)
         port map (
             axiClk          => axiClk,
             axiRst          => axiRst,
@@ -181,31 +181,21 @@ begin
     ---------------
 
     ------------------------------------------------------------------------
-    -- axi[0].[read]  = DMA descriptor's AXI read
-    -- axi[0].[write] = unused write bus
-    -- axi[DMA_SIZE_G:1].[read/write] = Mapped to DMA_SIZE_G DMA lanes
-    -- axi[DMA_SIZE_G+1].[read/write] = User General Purpose
+    -- axi[DMA_SIZE_G:0].[read/write] = Mapped to DMA_SIZE_G DMA lanes
+    -- axi[DMA_SIZE_G].[read/write] = User General Purpose
     ------------------------------------------------------------------------
 
-    -- Map the DMA descriptor's AXI read
-    axiReadMasters(0) <= dmaReadMasters(0);
-    dmaReadSlaves(0)  <= axiReadSlaves(0);
-
-    -- Terminate unused write bus
-    axiWriteMasters(0) <= AXI_WRITE_MASTER_INIT_C;
-    dmaWriteSlaves(0)  <= AXI_WRITE_SLAVE_FORCE_C;  -- Terminate unused write bus
-
     -- Map DMA AXI interfaces
-    axiReadMasters(DMA_SIZE_G downto 1)  <= dmaReadMasters(DMA_SIZE_G downto 1);
-    dmaReadSlaves(DMA_SIZE_G downto 1)   <= axiReadSlaves(DMA_SIZE_G downto 1);
-    axiWriteMasters(DMA_SIZE_G downto 1) <= dmaWriteMasters(DMA_SIZE_G downto 1);
-    dmaWriteSlaves(DMA_SIZE_G downto 1)  <= axiWriteSlaves(DMA_SIZE_G downto 1);
+    axiReadMasters(DMA_SIZE_G-1 downto 0)  <= dmaReadMasters(DMA_SIZE_G downto 1);
+    dmaReadSlaves(DMA_SIZE_G downto 1)     <= axiReadSlaves(DMA_SIZE_G-1 downto 0);
+    axiWriteMasters(DMA_SIZE_G-1 downto 0) <= dmaWriteMasters(DMA_SIZE_G downto 1);
+    dmaWriteSlaves(DMA_SIZE_G downto 1)    <= axiWriteSlaves(DMA_SIZE_G-1 downto 0);
 
     -- Map User General Purpose AXI interfaces
-    axiReadMasters(DMA_SIZE_G+1)  <= usrReadMaster;
-    usrReadSlave                  <= axiReadSlaves(DMA_SIZE_G+1);
-    axiWriteMasters(DMA_SIZE_G+1) <= usrWriteMaster;
-    usrWriteSlave                 <= axiWriteSlaves(DMA_SIZE_G+1);
+    axiReadMasters(DMA_SIZE_G)  <= usrReadMaster;
+    usrReadSlave                <= axiReadSlaves(DMA_SIZE_G);
+    axiWriteMasters(DMA_SIZE_G) <= usrWriteMaster;
+    usrWriteSlave               <= axiWriteSlaves(DMA_SIZE_G);
 
     ---------------
     -- Stream Fifos
