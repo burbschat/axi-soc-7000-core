@@ -291,6 +291,7 @@ then
 
    # Install common debugging tools
    echo "IMAGE_INSTALL:append = \" valgrind perf\"" >> $proj_dir/sources/meta-user/conf/layer.conf
+   # Consider excluding those if image is too large...
    echo "EXTRA_IMAGE_FEATURES += \"tools-debug\"" >> $proj_dir/sources/meta-user/conf/layer.conf
 
    ##############################################################################
