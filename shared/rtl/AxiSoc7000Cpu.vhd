@@ -262,7 +262,7 @@ begin
             axi_dma_arcache(3 downto 0) => dmaReadMaster.arcache,
             axi_dma_arid(5 downto 0)    => dmaReadMaster.arid(5 downto 0),
             axi_dma_arlen(3 downto 0)   => dmaReadMaster.arlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
-            axi_dma_arlock(1 downto 0)  => (others => '0'),
+            axi_dma_arlock(1 downto 0)  => dmaReadMaster.arlock,  -- AXI3 only but available in record so hook it up
             axi_dma_arprot(2 downto 0)  => dmaReadMaster.arprot,
             axi_dma_arqos(3 downto 0)   => dmaReadMaster.arqos,
             axi_dma_arready             => dmaReadSlave.arready,
@@ -273,7 +273,7 @@ begin
             axi_dma_awcache(3 downto 0) => dmaWriteMaster.awcache,
             axi_dma_awid(5 downto 0)    => dmaWriteMaster.awid(5 downto 0),
             axi_dma_awlen(3 downto 0)   => dmaWriteMaster.awlen(AXI_SOC_CONFIG_C.LEN_BITS_C-1 downto 0),
-            axi_dma_awlock(1 downto 0)  => (others => '0'),
+            axi_dma_awlock(1 downto 0)  => dmaWriteMaster.awlock,  -- AXI3 only but available in record so hook it up
             axi_dma_awprot(2 downto 0)  => dmaWriteMaster.awprot,
             axi_dma_awqos(3 downto 0)   => dmaWriteMaster.awqos,
             axi_dma_awready             => dmaWriteSlave.awready,
@@ -290,7 +290,11 @@ begin
             axi_dma_rresp(1 downto 0)   => dmaReadSlave.rresp,
             axi_dma_rvalid              => dmaReadSlave.rvalid,
             axi_dma_wdata(63 downto 0)  => dmaWriteMaster.wdata(8*AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
-            axi_dma_wid                 => (others => '0'),  -- Fixed wid as master is AXI4
+            -- wid is AXI3 only and the PS HP ports seem to drive bid based
+            -- on wid? So for some cases we might want to hook up wid <= awid
+            -- so that bid = wid = awid (required for surf dma AXI muxes it
+            -- seems)...
+            axi_dma_wid                 => dmaWriteMaster.wid(5 downto 0),
             axi_dma_wlast               => dmaWriteMaster.wlast,
             axi_dma_wready              => dmaWriteSlave.wready,
             axi_dma_wstrb(7 downto 0)   => dmaWriteMaster.wstrb(AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
