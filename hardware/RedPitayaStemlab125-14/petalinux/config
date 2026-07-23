@@ -1,2 +1,0 @@
-# Setting no MAC should use a fixed hardware specific value(?)
-CONFIG_SUBSYSTEM_ETHERNET_PS7_ETHERNET_0_MAC=""
