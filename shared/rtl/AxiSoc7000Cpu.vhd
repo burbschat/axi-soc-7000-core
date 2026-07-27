@@ -17,6 +17,7 @@ entity AxiSoc7000Cpu is
         TPD_G : time := 1 ns
         );
     port (
+        -- DDR ports
         DDR_cas_n         : inout std_logic;
         DDR_cke           : inout std_logic;
         DDR_ck_n          : inout std_logic;
@@ -38,31 +39,39 @@ entity AxiSoc7000Cpu is
         FIXED_IO_ps_srstb : inout std_logic;
         FIXED_IO_ps_clk   : inout std_logic;
         FIXED_IO_ps_porb  : inout std_logic;
-        -- Global pl clock
-        pl_clk            : in    std_logic;
-        -- DMA interrupt
-        dma_irq           : in    std_logic;
-        -- Master AXI-Lite Interface
-        regReadMaster     : out   AxiLiteReadMasterType;
-        regReadSlave      : in    AxiLiteReadSlaveType;
-        regWriteMaster    : out   AxiLiteWriteMasterType;
-        regWriteSlave     : in    AxiLiteWriteSlaveType;
 
-        -- Master AXI-Lite Interface (DMA control)
+        -- AXI-lite interface (PL has slave, PS has master, axilClk domain)
+        -- (TODO: Could be up to 250 MHz but in application only use around
+        -- 100 MHz anyways so no need to make it faster here?)
+        axilClk        : out sl;        -- 100MHz
+        axilRst        : out sl;
+        regReadMaster  : out AxiLiteReadMasterType;
+        regReadSlave   : in  AxiLiteReadSlaveType;
+        regWriteMaster : out AxiLiteWriteMasterType;
+        regWriteSlave  : in  AxiLiteWriteSlaveType;
+
+        -- DMA AXI Interface (PL has master, PS has slave, dmaClk domain)
+        -- The 7series ZYNQ only supports AXI3 so the masters must ensure
+        -- to conform by AXI3 (not AXI4) rules (e.g. burst length <= 16).
+        dmaClk             : out sl;    -- 125 MHz
+        dmaRst             : out sl;
+        dmaIrq             : in  sl;
+        dmaReadMaster      : in  AxiReadMasterType;
+        dmaReadSlave       : out AxiReadSlaveType;
+        dmaWriteMaster     : in  AxiWriteMasterType;
+        dmaWriteSlave      : out AxiWriteSlaveType;
+        -- Master AXI-Lite Interface (DMA control, dmaClk domain)
         dmaCtrlReadMaster  : out AxiLiteReadMasterType;
         dmaCtrlReadSlave   : in  AxiLiteReadSlaveType;
         dmaCtrlWriteMaster : out AxiLiteWriteMasterType;
         dmaCtrlWriteSlave  : in  AxiLiteWriteSlaveType;
 
-        -- Slave AXI4 Interface (DMA) 
-        -- The 7series ZYNQ only supports AXI3 but this is translated to AXI4 by a block in the block design
-        dmaReadMaster  : in  AxiReadMasterType;
-        dmaReadSlave   : out AxiReadSlaveType;
-        dmaWriteMaster : in  AxiWriteMasterType;
-        dmaWriteSlave  : out AxiWriteSlaveType;
+        -- Auxillary clock at 100 MHz
+        auxClk : out sl;
+        auxRst : out sl
 
-        -- Reset
-        reset_l : in std_logic
+     -- Reset for protocol convert IPs in the block design
+     -- protConvRstL : in sl
         );
 end entity AxiSoc7000Cpu;
 
@@ -71,6 +80,24 @@ architecture mapping of AxiSoc7000Cpu is
     component AxiSoc7000CpuCore is
         -- Ports copy/pasted from instantiation template
         port (
+            -- Clock inputs (driving protocol convert and PS interfaces)
+            axi_dma_clk  : in std_logic;
+            axi_lite_clk : in std_logic;
+
+            -- Resets (protocol convert IPs)
+            axi_lite_dma_ctrl_rst_l  : in std_logic;
+            axi_lite_prot_conv_rst_l : in std_logic;
+
+            -- Clock outputs from PS IP
+            FCLK_CLK0_0     : out std_logic;  -- 142.857132 MHz (maximum possible)
+            FCLK_CLK1_0     : out std_logic;  -- 125.000000 MHz
+            FCLK_CLK2_0     : out std_logic;  -- 100.000000 MHz
+            FCLK_RESET0_N_0 : out std_logic;
+
+            -- DMA interrupt
+            dma_irq : in std_logic;
+
+            -- DDR ports
             DDR_cas_n         : inout std_logic;
             DDR_cke           : inout std_logic;
             DDR_ck_n          : inout std_logic;
@@ -92,30 +119,27 @@ architecture mapping of AxiSoc7000Cpu is
             FIXED_IO_ps_srstb : inout std_logic;
             FIXED_IO_ps_clk   : inout std_logic;
             FIXED_IO_ps_porb  : inout std_logic;
-            -- Global pl clock
-            pl_clk            : in    std_logic;
-            -- DMA interrupt
-            dma_irq           : in    std_logic;
+
             -- Master AXI-Lite Interface
-            axi_lite_awaddr   : out   std_logic_vector (31 downto 0);
-            axi_lite_awprot   : out   std_logic_vector (2 downto 0);
-            axi_lite_awvalid  : out   std_logic;
-            axi_lite_awready  : in    std_logic;
-            axi_lite_wdata    : out   std_logic_vector (31 downto 0);
-            axi_lite_wstrb    : out   std_logic_vector (3 downto 0);
-            axi_lite_wvalid   : out   std_logic;
-            axi_lite_wready   : in    std_logic;
-            axi_lite_bresp    : in    std_logic_vector (1 downto 0);
-            axi_lite_bvalid   : in    std_logic;
-            axi_lite_bready   : out   std_logic;
-            axi_lite_araddr   : out   std_logic_vector (31 downto 0);
-            axi_lite_arprot   : out   std_logic_vector (2 downto 0);
-            axi_lite_arvalid  : out   std_logic;
-            axi_lite_arready  : in    std_logic;
-            axi_lite_rdata    : in    std_logic_vector (31 downto 0);
-            axi_lite_rresp    : in    std_logic_vector (1 downto 0);
-            axi_lite_rvalid   : in    std_logic;
-            axi_lite_rready   : out   std_logic;
+            axi_lite_awaddr  : out std_logic_vector (31 downto 0);
+            axi_lite_awprot  : out std_logic_vector (2 downto 0);
+            axi_lite_awvalid : out std_logic;
+            axi_lite_awready : in  std_logic;
+            axi_lite_wdata   : out std_logic_vector (31 downto 0);
+            axi_lite_wstrb   : out std_logic_vector (3 downto 0);
+            axi_lite_wvalid  : out std_logic;
+            axi_lite_wready  : in  std_logic;
+            axi_lite_bresp   : in  std_logic_vector (1 downto 0);
+            axi_lite_bvalid  : in  std_logic;
+            axi_lite_bready  : out std_logic;
+            axi_lite_araddr  : out std_logic_vector (31 downto 0);
+            axi_lite_arprot  : out std_logic_vector (2 downto 0);
+            axi_lite_arvalid : out std_logic;
+            axi_lite_arready : in  std_logic;
+            axi_lite_rdata   : in  std_logic_vector (31 downto 0);
+            axi_lite_rresp   : in  std_logic_vector (1 downto 0);
+            axi_lite_rvalid  : in  std_logic;
+            axi_lite_rready  : out std_logic;
 
             -- Master AXI-Lite Interface (DMA control)
             axi_dmactrl_araddr  : out std_logic_vector (31 downto 0);
@@ -176,18 +200,86 @@ architecture mapping of AxiSoc7000Cpu is
             axi_dma_wlast   : in  std_logic;
             axi_dma_wready  : out std_logic;
             axi_dma_wstrb   : in  std_logic_vector (7 downto 0);
-            axi_dma_wvalid  : in  std_logic;
-
-            -- Reset
-            reset_l : in std_logic
+            axi_dma_wvalid  : in  std_logic
             );
     end component AxiSoc7000CpuCore;
 
+    -- Clock outputs from PS
+    signal fclk142MHz857 : sl;
+    signal fclk125MHz    : sl;
+    signal fclk100MHz    : sl;
+    -- Reset output from PS. There is only one so it can be used 
+    -- with all available fclk outputs (TODO)?
+    signal fclkRstL      : sl;
+
+    signal axilClkInt : sl;
+    signal axilRstInt : sl;
+    signal dmaClkInt  : sl;
+    signal dmaRstInt  : sl;
+    signal auxClkInt  : sl;
+    signal auxRstInt  : sl;
+
 begin
 
+    -- Clock and reset for AXI-Lite clock domain
+    axilClkInt <= fclk100MHz;
+    U_axilRst : entity surf.RstSync
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk      => axilClkInt,
+            asyncRst => not fclkRstL,
+            syncRst  => axilRstInt);
+
+    -- Clock and reset for DMA clock domain
+    dmaClkInt <= fclk125MHz;
+    U_dmaRst : entity surf.RstSync
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk      => dmaClkInt,
+            asyncRst => not fclkRstL,
+            syncRst  => dmaRstInt);
+
+    -- Auxillary clock at 100 MHz and reset (for now same as axilClk)
+    auxClk <= axilClkInt;
+    U_auxRst : entity surf.RstSync
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk      => auxClkInt,
+            asyncRst => not fclkRstL,
+            syncRst  => auxRstInt);
+
+    -- Assign clk/rst outputs
+    axilClk <= axilClkInt;
+    axilRst <= axilRstInt;
+    dmaClk  <= dmaClkInt;
+    dmaRst  <= dmaRstInt;
+    auxClk  <= auxClkInt;
+    auxRst  <= auxRstInt;
 
     U_CPU : AxiSoc7000CpuCore
         port map(
+            -- Clock inputs (driving protocol convert and PS interfaces)
+            axi_dma_clk  => dmaClkInt,
+            axi_lite_clk => axilClkInt,
+
+            -- Resets (protocol convert IPs)
+            -- I believe asserting those got the PS stuck? So keep unconnected for now...
+            axi_lite_dma_ctrl_rst_l  => '1',
+            axi_lite_prot_conv_rst_l => '1',
+
+            -- Clock outputs from PS IP
+            -- TODO: Desirable to disable unused ones to save resources?
+            FCLK_CLK0_0     => fclk142MHz857,  -- 142.857132 MHz (maximum possible)
+            FCLK_CLK1_0     => fclk125MHz,     -- 125.000000 MHz
+            FCLK_CLK2_0     => fclk100MHz,     -- 100.000000 MHz
+            FCLK_RESET0_N_0 => fclkRstL,
+
+            -- DMA interrupt
+            dma_irq => dmaIrq,
+
             DDR_addr(14 downto 0)     => DDR_addr(14 downto 0),
             DDR_ba(2 downto 0)        => DDR_ba(2 downto 0),
             DDR_cas_n                 => DDR_cas_n,
@@ -209,30 +301,27 @@ begin
             FIXED_IO_ps_clk           => FIXED_IO_ps_clk,
             FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
             FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
-            -- Global pl clock
-            pl_clk                    => pl_clk,
-            -- DMA interrupt
-            dma_irq                   => dma_irq,
+
             -- Master AXI-Lite Interface
-            axi_lite_araddr           => regReadMaster.araddr,
-            axi_lite_arprot           => regReadMaster.arprot,
-            axi_lite_arready          => regReadSlave.arready,
-            axi_lite_arvalid          => regReadMaster.arvalid,
-            axi_lite_awaddr           => regWriteMaster.awaddr,
-            axi_lite_awprot           => regWriteMaster.awprot,
-            axi_lite_awready          => regWriteSlave.awready,
-            axi_lite_awvalid          => regWriteMaster.awvalid,
-            axi_lite_bready           => regWriteMaster.bready,
-            axi_lite_bresp            => AXI_RESP_OK_C,  -- Always respond OK
-            axi_lite_bvalid           => regWriteSlave.bvalid,
-            axi_lite_rdata            => regReadSlave.rdata,
-            axi_lite_rready           => regReadMaster.rready,
-            axi_lite_rresp            => AXI_RESP_OK_C,  -- Always respond OK
-            axi_lite_rvalid           => regReadSlave.rvalid,
-            axi_lite_wdata            => regWriteMaster.wdata,
-            axi_lite_wready           => regWriteSlave.wready,
-            axi_lite_wstrb            => regWriteMaster.wstrb,
-            axi_lite_wvalid           => regWriteMaster.wvalid,
+            axi_lite_araddr  => regReadMaster.araddr,
+            axi_lite_arprot  => regReadMaster.arprot,
+            axi_lite_arready => regReadSlave.arready,
+            axi_lite_arvalid => regReadMaster.arvalid,
+            axi_lite_awaddr  => regWriteMaster.awaddr,
+            axi_lite_awprot  => regWriteMaster.awprot,
+            axi_lite_awready => regWriteSlave.awready,
+            axi_lite_awvalid => regWriteMaster.awvalid,
+            axi_lite_bready  => regWriteMaster.bready,
+            axi_lite_bresp   => AXI_RESP_OK_C,  -- Always respond OK
+            axi_lite_bvalid  => regWriteSlave.bvalid,
+            axi_lite_rdata   => regReadSlave.rdata,
+            axi_lite_rready  => regReadMaster.rready,
+            axi_lite_rresp   => AXI_RESP_OK_C,  -- Always respond OK
+            axi_lite_rvalid  => regReadSlave.rvalid,
+            axi_lite_wdata   => regWriteMaster.wdata,
+            axi_lite_wready  => regWriteSlave.wready,
+            axi_lite_wstrb   => regWriteMaster.wstrb,
+            axi_lite_wvalid  => regWriteMaster.wvalid,
 
             -- Master AXI-Lite Interface (DMA control)
             axi_dmactrl_araddr(31 downto 0) => dmaCtrlReadMaster.araddr,
@@ -298,14 +387,10 @@ begin
             axi_dma_wlast               => dmaWriteMaster.wlast,
             axi_dma_wready              => dmaWriteSlave.wready,
             axi_dma_wstrb(7 downto 0)   => dmaWriteMaster.wstrb(AXI_SOC_CONFIG_C.DATA_BYTES_C-1 downto 0),
-            axi_dma_wvalid              => dmaWriteMaster.wvalid,
+            axi_dma_wvalid              => dmaWriteMaster.wvalid);
 
-            -- Reset (only to IP block in the BD, not the CPU itself)
-            reset_l => reset_l
-            );
-
+    -- Could use clock manager as below to synthesize other frequencies.
     -- Note: No idea if below PLL settings work
-    -- TODO: Adjust block design and get clocks from there? For the time being everything is synchronous to ADC clock
     -- U_Pll : entity surf.ClockManager7
     --     generic map(
     --         TPD_G             => TPD_G,
@@ -327,7 +412,6 @@ begin
     --         clkOut(0) => somethingClk,
     --         clkOut(1) => somethingElseClk,
     --         rstOut(0) => somethingRst,
-    --         rstOut(1) => somethingElseRst,
-    --         );
+    --         rstOut(1) => somethingElseRst);
 
 end architecture mapping;

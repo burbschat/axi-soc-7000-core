@@ -18,30 +18,37 @@ use unisim.vcomponents.all;
 
 entity AxiSoc7000Reg is
     generic (
-        TPD_G        : time := 1 ns;
-        BUILD_INFO_G : BuildInfoType
+        TPD_G           : time                   := 1 ns;
+        BUILD_INFO_G    : BuildInfoType;
+        EN_DEVICE_DNA_G : boolean                := true;
+        COMMON_CLK_G    : boolean                := false;  -- appClk = axilClk?
+        DMA_SIZE_G      : positive range 1 to 16 := 1
      -- AXI_BASE_ADDR_G : slv(31 downto 0) := AXIL_REG_BASE_ADDR_C
         );
     port (
-        -- Global pl clock
-        pl_clk         : in  std_logic;
-        -- Global pl reset
-        pl_rst         : in  std_logic;
-        -- AXI-Lite register acess interfaces
+        -- ADC Clock and Reset Monitoring
+        adcClk         : in  sl;
+        adcRst         : in  sl;
+        -- AUX Clock and Reset
+        auxClk         : in  sl;        -- 100 MHz
+        auxRst         : in  sl;
+        -- AXI-Lite register access interfaces
+        axilClk        : in  sl;
+        axilRst        : in  sl;
         regReadMaster  : in  AxiLiteReadMasterType;
         regReadSlave   : out AxiLiteReadSlaveType;
         regWriteMaster : in  AxiLiteWriteMasterType;
         regWriteSlave  : out AxiLiteWriteSlaveType;
         -- Application AXI-Lite Interfaces [0x6000_0000:0x7FFF_FFFF]
         -- (could be appClk domain, but for now it isn't)
-        -- appClk         : in  sl;
-        -- appRst         : in  sl;
+        appClk         : in  sl;
+        appRst         : in  sl;
         appReadMaster  : out AxiLiteReadMasterType;
         appReadSlave   : in  AxiLiteReadSlaveType;
         appWriteMaster : out AxiLiteWriteMasterType;
         appWriteSlave  : in  AxiLiteWriteSlaveType;
         -- Application Force reset
-        userResetOut   : out sl
+        appUserRst     : out sl
         );
 end entity AxiSoc7000Reg;
 
@@ -88,68 +95,92 @@ architecture mapping of AxiSoc7000Reg is
     signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
     signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXI_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
-    signal userReset : sl := '0';
+    signal axilUserRst : sl;
+    signal userRst     : sl := '0';
 
-    signal userValues : Slv32Array(0 to 63) := (others => x"00000000");
+    signal userValues        : Slv32Array(0 to 63) := (others => x"00000000");
+    signal appClkFreq        : slv(31 downto 0);
+    signal appRstSyncAxilClk : sl;
+    signal adcClkFreq        : slv(31 downto 0);
+    signal adcRstSyncAxilClk : sl;
 
 begin
 
     ---------------------------------------------------------------------------------------------
     -- Driver Polls the userValues to determine the firmware's configurations and interrupt state
     ---------------------------------------------------------------------------------------------
-    -- process(pl_clk, pl_rst)
-    --     variable i : natural;
-    -- begin
-    --     -- Number of DMA lanes (defined by user)
-    --     userValues(0) <= toSlv(DMA_SIZE_G, 32);
-    --
-    --     -- System Clock Frequency
-    --     userValues(1) <= toSlv(getTimeRatio(DMA_CLK_FREQ_C, 1.0), 32);
-    --
-    --     -- Application Reset
-    --     userValues(2)(0) <= appResetSync;
-    --
-    --     -- Application Clock Frequency
-    --     userValues(3) <= appClkFreq;
-    --
-    --     -- DSP Clock Frequency
-    --     userValues(4) <= dspClkFreq;
-    --
-    --     -- DSP Reset
-    --     userValues(5)(0) <= dspRstSync;
-    --
-    --     -- Hardware Type
-    --     userValues(6) <= HW_TYPE_C;
-    --
-    -- end process;
+    process(appClkFreq, appRstSyncAxilClk, adcClkFreq, adcRstSyncAxilClk)
+    begin
+        -- Number of DMA lanes (defined by user)
+        userValues(0) <= toSlv(DMA_SIZE_G, 32);
 
-    --------------------
-    -- AXI-Lite Crossbar
-    --------------------
+        -- System Clock Frequency (TODO does this make sense?)
+        userValues(1) <= toSlv(getTimeRatio(DMA_CLK_FREQ_C, 1.0), 32);
 
-    -- Register access interface is master
+        -- Application Reset
+        userValues(2)(0) <= appRstSyncAxilClk;
+
+        -- Application Clock Frequency
+        userValues(3) <= appClkFreq;
+
+        -- DSP Clock Frequency
+        userValues(4) <= adcClkFreq;
+
+        -- DSP Reset
+        userValues(5)(0) <= adcRstSyncAxilClk;
+
+        -- Hardware Type
+        userValues(6) <= HW_TYPE_C;
+
+    end process;
+
+    -- Map ports for AXI-Lite interface to CPU (CPU has master,
+    -- accesses slaves in application or this module).
+    -- TODO?: Remove this reassignment by renaming the signals.
     axilReadMaster  <= regReadMaster;
     regReadSlave    <= axilReadSlave;
     axilWriteMaster <= regWriteMaster;
     regWriteSlave   <= axilWriteSlave;
 
-    -- App interface is a slave
-    appReadMaster                <= axilReadMasters(APP_INDEX_C);
-    axilReadSlaves(APP_INDEX_C)  <= appReadSlave;
-    appWriteMaster               <= axilWriteMasters(APP_INDEX_C);
-    axilWriteSlaves(APP_INDEX_C) <= appWriteSlave;
+    --------------------------------------
+    -- AXI-Lite Synchronizing and Crossbar
+    --------------------------------------
+    -- Synchronize application interface (CPU has master, application has 
+    -- slaves) to CPUs AXI-Lite clock domain (axilClk).
+    U_AxiLiteAsync : entity surf.AxiLiteAsync
+        generic map (
+            TPD_G           => TPD_G,
+            COMMON_CLK_G    => COMMON_CLK_G,
+            NUM_ADDR_BITS_G => 32  -- should be at least 29 to fit into address space set in BD?
+            )
+        port map (
+            -- Slave Interface
+            sAxiClk         => axilClk,
+            sAxiClkRst      => axilRst,
+            sAxiReadMaster  => axilReadMasters(APP_INDEX_C),
+            sAxiReadSlave   => axilReadSlaves(APP_INDEX_C),
+            sAxiWriteMaster => axilWriteMasters(APP_INDEX_C),
+            sAxiWriteSlave  => axilWriteSlaves(APP_INDEX_C),
+            -- Master Interface
+            mAxiClk         => appClk,
+            mAxiClkRst      => appRst,
+            mAxiReadMaster  => appReadMaster,
+            mAxiReadSlave   => appReadSlave,
+            mAxiWriteMaster => appWriteMaster,
+            mAxiWriteSlave  => appWriteSlave);
 
-
+    -- Merge (synchronized) application AXI-Lite interface with AXI-Lite
+    -- interfaces connected to slaves in this module (e.g. AxiVersion).
     U_XBAR : entity surf.AxiLiteCrossbar
         generic map (
             TPD_G              => TPD_G,
+            -- DEBUG_G         => true  -- Try enable debug printouts
             NUM_SLAVE_SLOTS_G  => 1,
             NUM_MASTER_SLOTS_G => NUM_AXI_MASTERS_C,
-            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C,
-            DEBUG_G            => true)  -- Try enable debug printouts
+            MASTERS_CONFIG_G   => AXI_CROSSBAR_MASTERS_CONFIG_C)
         port map (
-            axiClk              => pl_clk,
-            axiClkRst           => pl_rst,
+            axiClk              => axilClk,
+            axiClkRst           => axilRst,
             sAxiWriteMasters(0) => axilWriteMaster,
             sAxiWriteSlaves(0)  => axilWriteSlave,
             sAxiReadMasters(0)  => axilReadMaster,
@@ -164,37 +195,48 @@ begin
     --------------------------
     U_Version : entity surf.AxiVersion
         generic map (
-            TPD_G         => TPD_G,
-            BUILD_INFO_G  => BUILD_INFO_G,
-            --CLK_PERIOD_G    => DMA_CLK_PERIOD_C,
-            USE_SLOWCLK_G => false,
-            --EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
-            XIL_DEVICE_G  => "7SERIES",
-            EN_ICAP_G     => false)
+            TPD_G           => TPD_G,
+            BUILD_INFO_G    => BUILD_INFO_G,
+            CLK_PERIOD_G    => AXIL_CLK_PERIOD_C,
+            USE_SLOWCLK_G   => false,
+            EN_DEVICE_DNA_G => EN_DEVICE_DNA_G,
+            XIL_DEVICE_G    => "7SERIES",
+            EN_ICAP_G       => false)
         port map (
-            --slowClk        => auxClk,
+            -- slowClk        => auxClk,
             -- AXI-Lite Interface
-            axiClk         => pl_clk,
-            axiRst         => pl_rst,
+            axiClk         => axilClk,
+            axiRst         => axilRst,
             axiReadMaster  => axilReadMasters(VERSION_INDEX_C),
             axiReadSlave   => axilReadSlaves(VERSION_INDEX_C),
             axiWriteMaster => axilWriteMasters(VERSION_INDEX_C),
             axiWriteSlave  => axilWriteSlaves(VERSION_INDEX_C),
             -- Optional: User Reset
-            userReset      => userReset
-         -- Optional: user values
-         -- userValues     => userValues
-            );
+            userReset      => userRst,
+            -- Optional: user values
+            userValues     => userValues);
 
-    U_dspReset : entity surf.RstPipeline
-        generic map(
-            TPD_G     => TPD_G,
-            INV_RST_G => false)
-        port map(
-            clk    => pl_clk,
-            rstIn  => userReset,
-            rstOut => userResetOut
-            );
+    -----------------------------
+    -- User reset (from register)
+    -----------------------------
+    -- Generated long-ish reset pulse synchronous to axilClk
+    U_RstGtSync : entity surf.PwrUpRst
+        generic map (
+            TPD_G      => TPD_G,
+            DURATION_G => 100)          -- 100 clock cycle pulse
+        port map (
+            arst   => userRst,          -- [in]
+            clk    => axilClk,          -- [in]
+            rstOut => axilUserRst);     -- [out]
+
+    -- Synchronize to user clock
+    U_axilRst : entity surf.RstSync
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk      => appClk,
+            asyncRst => axilUserRst,
+            syncRst  => appUserRst);
 
     -- Some static registers for testing
     -- U_REG_STATIC : entity axi_soc_7000_core.AxiTestRegister
@@ -204,5 +246,59 @@ begin
     --         axilReadSlave   => axilReadSlaves(VERSION_INDEX_C),
     --         axilWriteMaster => axilWriteMasters(VERSION_INDEX_C),
     --         axilWriteSlave  => axilWriteSlaves(VERSION_INDEX_C));
+
+    ---------------------------------
+    -- DSP Clock and Reset Monitoring
+    ---------------------------------
+    U_dspClkFreq : entity surf.SyncClockFreq
+        generic map (
+            TPD_G          => TPD_G,
+            REF_CLK_FREQ_G => AXIL_CLK_FREQ_C,
+            REFRESH_RATE_G => 1.0,
+            CNT_WIDTH_G    => 32)
+        port map (
+            -- Frequency Measurement (locClk domain)
+            freqOut => adcClkFreq,
+            -- Clocks
+            clkIn   => adcClk,
+            locClk  => axilClk,
+            refClk  => axilClk);
+
+    -- Synchronize appRst to axilClk for register readback
+    U_dspRstL : entity surf.Synchronizer
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk     => axilClk,
+            dataIn  => adcRst,
+            dataOut => adcRstSyncAxilClk);
+
+    ---------------------------------
+    -- DSP Clock and Reset Monitoring
+    ---------------------------------
+
+    -- Measure app clock frequency
+    U_appClkFreq : entity surf.SyncClockFreq
+        generic map (
+            TPD_G          => TPD_G,
+            REF_CLK_FREQ_G => AXIL_CLK_FREQ_C,
+            REFRESH_RATE_G => 1.0,
+            CNT_WIDTH_G    => 32)
+        port map (
+            -- Frequency Measurement (locClk domain)
+            freqOut => appClkFreq,
+            -- Clocks
+            clkIn   => appClk,
+            locClk  => axilClk,
+            refClk  => axilClk);
+
+    -- Synchronize appRst to axilClk for register readback
+    U_AppRstSyncAxilClk : entity surf.Synchronizer
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk     => axilClk,
+            dataIn  => appRst,
+            dataOut => appRstSyncAxilClk);
 
 end architecture mapping;

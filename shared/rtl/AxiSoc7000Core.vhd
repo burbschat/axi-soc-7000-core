@@ -14,14 +14,15 @@ use axi_soc_7000_core.AxiSoc7000Pkg.all;
 
 entity AxiSoc7000Core is
     generic(
-        TPD_G              : time                    := 1 ns;
-        ROGUE_SIM_EN_G     : boolean                 := false;
-        BUILD_INFO_G       : BuildInfoType;
-        DESC_MEMORY_TYPE_G : string                  := "block";
-        DMA_BURST_BYTES_G  : positive range 1 to 128 := 128;
-        DMA_SIZE_G         : positive range 1 to 1   := 1
-        );
+        TPD_G                : time                    := 1 ns;
+        ROGUE_SIM_EN_G       : boolean                 := false;
+        BUILD_INFO_G         : BuildInfoType;
+        COMMON_AUX_APP_CLK_G : boolean                 := false;  -- appClk = auxClk?
+        DESC_MEMORY_TYPE_G   : string                  := "block";
+        DMA_BURST_BYTES_G    : positive range 1 to 128 := 128;
+        DMA_SIZE_G           : positive range 1 to 1   := 1);
     port (
+        -- DDR signals from CPU
         DDR_cas_n         : inout std_logic;
         DDR_cke           : inout std_logic;
         DDR_ck_n          : inout std_logic;
@@ -43,25 +44,32 @@ entity AxiSoc7000Core is
         FIXED_IO_ps_srstb : inout std_logic;
         FIXED_IO_ps_clk   : inout std_logic;
         FIXED_IO_ps_porb  : inout std_logic;
-        -- Global pl clock
-        pl_clk            : in    std_logic;
-        -- Application AXI-Lite Interfaces [0x6000_0000:0x7FFF_FFFF] (for now pl clock domain)
-        appReadMaster     : out   AxiLiteReadMasterType;
-        appReadSlave      : in    AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
-        appWriteMaster    : out   AxiLiteWriteMasterType;
-        appWriteSlave     : in    AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C;
-        -- DMA Interfaces  (TODO: dmaClk domain?)
-        -- dmaClk            : out   sl;
-        -- dmaRst            : out   sl;
-        dmaBuffGrpPause   : out   slv(7 downto 0);
-        dmaObMasters      : out   AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
-        dmaObSlaves       : in    AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
-        dmaIbMasters      : in    AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
-        dmaIbSlaves       : out   AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
 
-        -- Reset
-        -- TODO: This is used also as a signal to drive other entities resets in this module. Perhaps this will lead to problems...
-        pl_rst : out std_logic
+        -- ADC Clock and Reset Monitoring
+        adcClk : in sl;
+        adcRst : in sl;
+
+        -- AUX Clock and Reset
+        auxClk : out sl;                -- 100 MHz
+        auxRst : out sl;
+
+        -- Application AXI-Lite Interfaces [0x6000_0000:0x7FFF_FFFF] (appClk domain)
+        appClk         : in  sl;
+        appRst         : in  sl;
+        appUserRst     : out sl;        -- User reset generated from register
+        appReadMaster  : out AxiLiteReadMasterType;
+        appReadSlave   : in  AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_DECERR_C;
+        appWriteMaster : out AxiLiteWriteMasterType;
+        appWriteSlave  : in  AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C;
+
+        -- DMA Interfaces  (dmaClk domain)
+        dmaClk          : out sl;       -- 125 MHz
+        dmaRst          : out sl;
+        dmaBuffGrpPause : out slv(7 downto 0);
+        dmaObMasters    : out AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
+        dmaObSlaves     : in  AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0);
+        dmaIbMasters    : in  AxiStreamMasterArray(DMA_SIZE_G-1 downto 0);
+        dmaIbSlaves     : out AxiStreamSlaveArray(DMA_SIZE_G-1 downto 0)
         );
 end entity AxiSoc7000Core;
 
@@ -87,15 +95,55 @@ architecture mapping of AxiSoc7000Core is
     signal dmaCtrlWriteMasters : AxiLiteWriteMasterArray(2 downto 0);
     signal dmaCtrlWriteSlaves  : AxiLiteWriteSlaveArray(2 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_DECERR_C);
 
-    -- Use local signal (buffer) as port is passed to output and other entities in this module
-    signal pl_rst_sig : sl := '0';
+    -- DMA interrupt signal
+    signal dmaIrq : sl;
 
-    signal dma_irq : sl;
+    signal auxClkInt : sl;
+    signal auxRstRaw : sl;
+    signal auxRstInt : sl;
+
+    signal dmaClkInt : sl;
+    signal dmaRstRaw : sl;
+    signal dmaRstInt : sl;
+
+    -- Clock for AXI-Lite interfaces connected to CPU.
+    -- The AXIL-Stuff in the application uses the appClk domain and appClk
+    -- is synchronized to axilClk in AxiSoc7000Reg.
+    signal axilClkInt : sl;
+    signal axilRstRaw : sl;
+    signal axilRstInt : sl;
 
 begin
+    -- Pipelines to help with timing
+    U_dmaRstPipeline : entity surf.RstPipeline
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk    => dmaClkInt,
+            rstIn  => dmaRstRaw,
+            rstOut => dmaRstInt);
 
-    -- Assign local reset signal to output
-    pl_rst <= pl_rst_sig;
+    U_axilRstPipeline : entity surf.RstPipeline
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk    => axilClkInt,
+            rstIn  => axilRstRaw,
+            rstOut => axilRstInt);
+
+    U_auxRstPipeline : entity surf.RstPipeline
+        generic map (
+            TPD_G => TPD_G)
+        port map (
+            clk    => auxClkInt,
+            rstIn  => auxRstRaw,
+            rstOut => auxRstInt);
+
+    -- Assign outputs
+    dmaClk <= dmaClkInt;
+    dmaRst <= dmaRstInt;
+    auxClk <= auxClkInt;
+    auxRst <= auxRstInt;
 
     ----------
     -- AXI CPU
@@ -106,6 +154,7 @@ begin
             generic map (
                 TPD_G => TPD_G)
             port map (
+                -- DDR ports
                 DDR_addr(14 downto 0)     => DDR_addr(14 downto 0),
                 DDR_ba(2 downto 0)        => DDR_ba(2 downto 0),
                 DDR_cas_n                 => DDR_cas_n,
@@ -127,32 +176,32 @@ begin
                 FIXED_IO_ps_clk           => FIXED_IO_ps_clk,
                 FIXED_IO_ps_porb          => FIXED_IO_ps_porb,
                 FIXED_IO_ps_srstb         => FIXED_IO_ps_srstb,
-                -- Global pl clock
-                pl_clk                    => pl_clk,
-                -- DMA interrupt
-                dma_irq                   => dma_irq,
-                -- Master AXI-Lite Interface
-                regReadMaster             => regReadMaster,
-                regReadSlave              => regReadSlave,
-                regWriteMaster            => regWriteMaster,
-                regWriteSlave             => regWriteSlave,
 
+                -- AXI-lite interface (axilClk domain)
+                axilClk        => axilClkInt,  -- 100MHz
+                axilRst        => axilRstRaw,
+                regReadMaster  => regReadMaster,
+                regReadSlave   => regReadSlave,
+                regWriteMaster => regWriteMaster,
+                regWriteSlave  => regWriteSlave,
+
+                -- DMA AXI Interfaces (dmaClk domain)
+                dmaClk             => dmaClkInt,  -- 125 MHz
+                dmaRst             => dmaRstRaw,
+                dmaIrq             => dmaIrq,
+                dmaReadMaster      => dmaReadMaster,
+                dmaReadSlave       => dmaReadSlave,
+                dmaWriteMaster     => dmaWriteMaster,
+                dmaWriteSlave      => dmaWriteSlave,
                 -- Master AXI-Lite Interface (DMA control)
                 dmaCtrlReadMaster  => dmaCtrlReadMasters(0),
                 dmaCtrlReadSlave   => dmaCtrlReadSlaves(0),
                 dmaCtrlWriteMaster => dmaCtrlWriteMasters(0),
                 dmaCtrlWriteSlave  => dmaCtrlWriteSlaves(0),
 
-                -- Slave AXI4 Interface (DMA)
-                dmaReadMaster  => dmaReadMaster,
-                dmaReadSlave   => dmaReadSlave,
-                dmaWriteMaster => dmaWriteMaster,
-                dmaWriteSlave  => dmaWriteSlave,
-
-                -- Reset
-                -- reset_l => not pl_rst_sig   -- Convert to active low reset
-                reset_l => not '0'  -- Convert to active low reset, seems resetting here locks up the system... 
-                );
+                -- Auxillary clock at 100 MHz
+                auxClk => auxClkInt,
+                auxRst => auxRstRaw);
 
     end generate;
 
@@ -161,26 +210,35 @@ begin
     ---------------
     U_REG : entity axi_soc_7000_core.AxiSoc7000Reg
         generic map (
-            BUILD_INFO_G => BUILD_INFO_G
+            BUILD_INFO_G    => BUILD_INFO_G,
+            COMMON_CLK_G    => COMMON_AUX_APP_CLK_G,  -- appClk = axilClk?
+            -- Enabling leads to timing issues so disable for now...
+            EN_DEVICE_DNA_G => false,
+            DMA_SIZE_G      => DMA_SIZE_G
             )
         port map(
-            -- Global pl clock
-            pl_clk         => pl_clk,
-            -- User commanded reset generated through AxiVersion (asseratable via register access)
-            userResetOut   => pl_rst_sig,
-            -- Global pl reset (looped back)
-            pl_rst         => pl_rst_sig,
-            -- Internal AXI4 Interfaces (eventually axiClk domain?)
+            -- ADC Clock and Reset Monitoring
+            adcClk         => adcClk,
+            adcRst         => adcRst,
+            -- AUX Clock and Reset
+            auxClk         => auxClkInt,
+            auxRst         => auxRstInt,
+            -- Internal AXI4 Interfaces (to CPU master, axilClk domain)
+            axilClk        => axilClkInt,
+            axilRst        => axilRstInt,
             regReadMaster  => regReadMaster,
             regReadSlave   => regReadSlave,
             regWriteMaster => regWriteMaster,
             regWriteSlave  => regWriteSlave,
-            -- (Optional) Application AXI-Lite Interfaces (eventually appClk domain?)
+            -- Application AXI-Lite Interfaces (to application slaves, appClk domain)
+            appClk         => appClk,
+            appRst         => appRst,
             appReadMaster  => appReadMaster,
             appReadSlave   => appReadSlave,
             appWriteMaster => appWriteMaster,
-            appWriteSlave  => appWriteSlave
-            );
+            appWriteSlave  => appWriteSlave,
+            -- User commanded reset generated through AxiVersion (asseratable via register access)
+            appUserRst     => appUserRst);
 
     --------------
     -- AXI SOC DMA
@@ -188,15 +246,12 @@ begin
     U_DMA : entity axi_soc_7000_core.AxiSoc7000Dma
         generic map (
             TPD_G              => TPD_G,
-            -- ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
-            -- ROGUE_SIM_PORT_NUM_G => ROGUE_SIM_PORT_NUM_G,
-            -- ROGUE_SIM_CH_COUNT_G => ROGUE_SIM_CH_COUNT_G,
             DESC_MEMORY_TYPE_G => DESC_MEMORY_TYPE_G,
             DMA_SIZE_G         => DMA_SIZE_G,
             DMA_BURST_BYTES_G  => DMA_BURST_BYTES_G)
         port map (
-            axiClk           => pl_clk,
-            axiRst           => pl_rst_sig,
+            axiClk           => dmaClkInt,
+            axiRst           => dmaRstInt,
             -- DMA AXI4 Interfaces (
             axiReadMaster    => dmaReadMaster,
             axiReadSlave     => dmaReadSlave,
@@ -213,12 +268,11 @@ begin
             axilWriteMasters => dmaCtrlWriteMasters,
             axilWriteSlaves  => dmaCtrlWriteSlaves,
             -- DMA Interfaces
-            dmaIrq           => dma_irq,
+            dmaIrq           => dmaIrq,
             dmaBuffGrpPause  => dmaBuffGrpPause,
             dmaObMasters     => dmaObMasters,
             dmaObSlaves      => dmaObSlaves,
             dmaIbMasters     => dmaIbMasters,
-            dmaIbSlaves      => dmaIbSlaves
-            );
+            dmaIbSlaves      => dmaIbSlaves);
 
 end architecture mapping;

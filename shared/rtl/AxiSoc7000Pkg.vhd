@@ -9,16 +9,20 @@ use surf.AxiPkg.all;
 
 package AxiSoc7000Pkg is
 
-    -- -- System Clock Frequency/Period
+    -- DMA Clock Frequency/Period
     constant DMA_CLK_FREQ_C   : real := 125.0E+6;              -- units of Hz
     constant DMA_CLK_PERIOD_C : real := (1.0/DMA_CLK_FREQ_C);  -- units of seconds
 
-    -- -- Aux Clock Frequency/Period
+    -- AXI-Lite Clock Frequency/Period (axil register access interface to CPU)
+    constant AXIL_CLK_FREQ_C   : real := 100.0E+6;               -- units of Hz
+    constant AXIL_CLK_PERIOD_C : real := (1.0/AXIL_CLK_FREQ_C);  -- units of seconds
+
+    -- Aux Clock Frequency/Period
     -- constant AUX_CLK_FREQ_C   : real := 100.0E+6;              -- units of Hz
     -- constant AUX_CLK_PERIOD_C : real := (1.0/AUX_CLK_FREQ_C);  -- units of seconds
 
     -- Register addresses base address, must match address base and range assigned in block design
-    constant AXIL_REG_BASE_ADDR_C : slv(31 downto 0) := x"4000_0000";
+    constant AXIL_REG_BASE_ADDR_C      : slv(31 downto 0)      := x"4000_0000";
     constant AXIL_REG_BASE_ADDR_BITS_C : natural range 1 to 32 := 30;
 
     -- Application Address Offset
@@ -27,20 +31,20 @@ package AxiSoc7000Pkg is
 
     -- SOC AXI Configuration
     constant AXI_SOC_CONFIG_C : AxiConfigType := (
-       ADDR_WIDTH_C => 32,               -- 32-bit address interface
-       DATA_BYTES_C => 8,                -- 64-bit data interface
-       ID_BITS_C    => 4,                -- Up to 16 DMA IDS (TODO: What is this one?)
-       LEN_BITS_C   => 4);               -- 8-bit awlen/arlen interface (4 to ensure compat. with CPU AXI3 interface)
+        ADDR_WIDTH_C => 32,             -- 32-bit address interface
+        DATA_BYTES_C => 8,              -- 64-bit data interface
+        ID_BITS_C    => 4,   -- Up to 16 DMA IDS (TODO: What is this one?)
+        LEN_BITS_C   => 4);  -- 8-bit awlen/arlen interface (4 to ensure compat. with CPU AXI3 interface)
 
     -- DMA AXI Stream Configuration
     constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (
-       TSTRB_EN_C    => false,
-       TDATA_BYTES_C => AXI_SOC_CONFIG_C.DATA_BYTES_C,  -- Map the widths of the AXI interface
-       TDEST_BITS_C  => 8,
-       TID_BITS_C    => 3,
-       TKEEP_MODE_C  => TKEEP_COMP_C,
-       TUSER_BITS_C  => 4,
-       TUSER_MODE_C  => TUSER_FIRST_LAST_C);
+        TSTRB_EN_C    => false,
+        TDATA_BYTES_C => AXI_SOC_CONFIG_C.DATA_BYTES_C,  -- Map the widths of the AXI interface
+        TDEST_BITS_C  => 8,
+        TID_BITS_C    => 3,
+        TKEEP_MODE_C  => TKEEP_COMP_C,
+        TUSER_BITS_C  => 4,
+        TUSER_MODE_C  => TUSER_FIRST_LAST_C);
 
     -- List of PCIe Hardware Types
     constant HW_TYPE_UNDEFINED_C         : slv(31 downto 0) := x"00_00_00_00";
