@@ -15,7 +15,8 @@ entity AxiTestRegister is
         TPD_G : time := 1 ns);
     port (
         -- PL clock
-        axilClk          : in  sl;
+        axilClk         : in  sl;
+        axilRst         : in  sl;
         -- AXI-Lite Interface
         axilReadMaster  : in  AxiLiteReadMasterType;
         axilReadSlave   : out AxiLiteReadSlaveType;
@@ -45,7 +46,7 @@ architecture rtl of AxiTestRegister is
 
 begin
 
-    comb : process (axilReadMaster, axilWriteMaster, r) is
+    comb : process (axilReadMaster, axilWriteMaster, r, axilRst) is
         variable v      : RegType;
         variable axilEp : AxiLiteEndPointType;
     begin
@@ -76,6 +77,11 @@ begin
         -- Outputs
         axilWriteSlave <= r.axilWriteSlave;
         axilReadSlave  <= r.axilReadSlave;
+
+        -- Synchronous Reset
+        if axilRst = '1' then
+            v := REG_INIT_C;
+        end if;
 
         -- Register the variable for next clock cycle
         rin <= v;
