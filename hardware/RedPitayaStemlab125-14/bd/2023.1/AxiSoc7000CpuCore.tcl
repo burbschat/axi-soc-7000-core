@@ -23,7 +23,7 @@ set script_folder [_tcl::get_script_folder]
 set scripts_vivado_version 2023.1
 set current_vivado_version [version -short]
 
-if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
+if {[package vcompare $current_vivado_version $scripts_vivado_version] < 0} {
    puts ""
    catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
 
@@ -197,7 +197,7 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.ADDR_WIDTH {32} \
    CONFIG.DATA_WIDTH {32} \
-   CONFIG.FREQ_HZ {125000000} \
+   CONFIG.FREQ_HZ {100000000} \
    CONFIG.HAS_BURST {0} \
    CONFIG.HAS_CACHE {0} \
    CONFIG.HAS_LOCK {0} \
@@ -206,13 +206,65 @@ proc create_root_design { parentCell } {
    CONFIG.PROTOCOL {AXI4LITE} \
    ] $axi_lite
 
+  set axi_dmactrl [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 axi_dmactrl ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {32} \
+   CONFIG.DATA_WIDTH {32} \
+   CONFIG.FREQ_HZ {142857132} \
+   CONFIG.HAS_BURST {0} \
+   CONFIG.HAS_CACHE {0} \
+   CONFIG.HAS_LOCK {0} \
+   CONFIG.HAS_QOS {0} \
+   CONFIG.HAS_REGION {0} \
+   CONFIG.PROTOCOL {AXI4LITE} \
+   ] $axi_dmactrl
+
+  set axi_dma [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 axi_dma ]
+  set_property -dict [ list \
+   CONFIG.ADDR_WIDTH {32} \
+   CONFIG.ARUSER_WIDTH {0} \
+   CONFIG.AWUSER_WIDTH {0} \
+   CONFIG.BUSER_WIDTH {0} \
+   CONFIG.DATA_WIDTH {64} \
+   CONFIG.FREQ_HZ {142857132} \
+   CONFIG.HAS_BRESP {1} \
+   CONFIG.HAS_BURST {1} \
+   CONFIG.HAS_CACHE {1} \
+   CONFIG.HAS_LOCK {1} \
+   CONFIG.HAS_PROT {1} \
+   CONFIG.HAS_QOS {1} \
+   CONFIG.HAS_REGION {1} \
+   CONFIG.HAS_RRESP {1} \
+   CONFIG.HAS_WSTRB {1} \
+   CONFIG.ID_WIDTH {6} \
+   CONFIG.MAX_BURST_LENGTH {16} \
+   CONFIG.NUM_READ_OUTSTANDING {8} \
+   CONFIG.NUM_READ_THREADS {1} \
+   CONFIG.NUM_WRITE_OUTSTANDING {8} \
+   CONFIG.NUM_WRITE_THREADS {1} \
+   CONFIG.PROTOCOL {AXI3} \
+   CONFIG.READ_WRITE_MODE {READ_WRITE} \
+   CONFIG.RUSER_BITS_PER_BYTE {0} \
+   CONFIG.RUSER_WIDTH {0} \
+   CONFIG.SUPPORTS_NARROW_BURST {1} \
+   CONFIG.WUSER_BITS_PER_BYTE {0} \
+   CONFIG.WUSER_WIDTH {0} \
+   ] $axi_dma
+
 
   # Create ports
-  set pl_clk [ create_bd_port -dir I -type clk -freq_hz 125000000 pl_clk ]
+  set axi_lite_prot_conv_rst_l [ create_bd_port -dir I -type rst axi_lite_prot_conv_rst_l ]
+  set dma_irq [ create_bd_port -dir I -type intr dma_irq ]
+  set FCLK_CLK0_0 [ create_bd_port -dir O -type clk FCLK_CLK0_0 ]
+  set FCLK_RESET0_N_0 [ create_bd_port -dir O -type rst FCLK_RESET0_N_0 ]
+  set FCLK_CLK1_0 [ create_bd_port -dir O -type clk FCLK_CLK1_0 ]
+  set FCLK_CLK2_0 [ create_bd_port -dir O -type clk FCLK_CLK2_0 ]
+  set axi_dma_clk [ create_bd_port -dir I -type clk -freq_hz 142857132 axi_dma_clk ]
+  set axi_lite_clk [ create_bd_port -dir I -type clk -freq_hz 100000000 axi_lite_clk ]
   set_property -dict [ list \
-   CONFIG.ASSOCIATED_RESET {reset_l} \
- ] $pl_clk
-  set reset_l [ create_bd_port -dir I -type rst reset_l ]
+   CONFIG.ASSOCIATED_RESET {axi_lite_prot_conv_rst_l} \
+ ] $axi_lite_clk
+  set axi_lite_dma_ctrl_rst_l [ create_bd_port -dir I axi_lite_dma_ctrl_rst_l ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]
@@ -222,9 +274,9 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {50.000000} \
-    CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {142.857132} \
+    CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {125.000000} \
+    CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {100.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_PCAP_PERIPHERAL_FREQMHZ {200.000000} \
     CONFIG.PCW_ACT_QSPI_PERIPHERAL_FREQMHZ {10.000000} \
@@ -240,9 +292,9 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_TTC1_CLK2_PERIPHERAL_FREQMHZ {111.111115} \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {100.000000} \
     CONFIG.PCW_ACT_WDT_PERIPHERAL_FREQMHZ {111.111115} \
-    CONFIG.PCW_CLK0_FREQ {50000000} \
-    CONFIG.PCW_CLK1_FREQ {10000000} \
-    CONFIG.PCW_CLK2_FREQ {10000000} \
+    CONFIG.PCW_CLK0_FREQ {142857132} \
+    CONFIG.PCW_CLK1_FREQ {125000000} \
+    CONFIG.PCW_CLK2_FREQ {100000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
     CONFIG.PCW_DDR_RAM_HIGHADDR {0x1FFFFFFF} \
     CONFIG.PCW_ENET0_ENET0_IO {MIO 16 .. 27} \
@@ -251,6 +303,8 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ENET0_PERIPHERAL_CLKSRC {IO PLL} \
     CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
     CONFIG.PCW_ENET0_PERIPHERAL_FREQMHZ {1000 Mbps} \
+    CONFIG.PCW_EN_CLK1_PORT {1} \
+    CONFIG.PCW_EN_CLK2_PORT {1} \
     CONFIG.PCW_EN_EMIO_CD_SDIO0 {0} \
     CONFIG.PCW_EN_EMIO_ENET0 {0} \
     CONFIG.PCW_EN_EMIO_TTC0 {1} \
@@ -262,7 +316,15 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_EN_TTC0 {1} \
     CONFIG.PCW_EN_UART0 {1} \
     CONFIG.PCW_EN_UART1 {0} \
+    CONFIG.PCW_FCLK_CLK1_BUF {TRUE} \
+    CONFIG.PCW_FCLK_CLK2_BUF {TRUE} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {150} \
+    CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ {125} \
+    CONFIG.PCW_FPGA2_PERIPHERAL_FREQMHZ {100} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
+    CONFIG.PCW_FPGA_FCLK1_ENABLE {1} \
+    CONFIG.PCW_FPGA_FCLK2_ENABLE {1} \
+    CONFIG.PCW_IRQ_F2P_INTR {1} \
     CONFIG.PCW_MIO_14_IOTYPE {LVCMOS 3.3V} \
     CONFIG.PCW_MIO_14_PULLUP {enabled} \
     CONFIG.PCW_MIO_14_SLEW {slow} \
@@ -370,6 +432,9 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_UIPARAM_DDR_FREQ_MHZ {533.333333} \
     CONFIG.PCW_UIPARAM_DDR_MEMORY_TYPE {DDR 3 (Low Voltage)} \
     CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41K256M16 RE-125} \
+    CONFIG.PCW_USE_FABRIC_INTERRUPT {1} \
+    CONFIG.PCW_USE_M_AXI_GP1 {1} \
+    CONFIG.PCW_USE_S_AXI_HP0 {1} \
   ] $processing_system7_0
 
 
@@ -386,23 +451,49 @@ proc create_root_design { parentCell } {
   ] $axi_protocol_convert_0
 
 
+  # Create instance: axi_protocol_convert_1, and set properties
+  set axi_protocol_convert_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_convert_1 ]
+  set_property -dict [list \
+    CONFIG.ADDR_WIDTH {32} \
+    CONFIG.DATA_WIDTH {32} \
+    CONFIG.ID_WIDTH {16} \
+    CONFIG.MI_PROTOCOL {AXI4LITE} \
+    CONFIG.READ_WRITE_MODE {READ_WRITE} \
+    CONFIG.SI_PROTOCOL {AXI3} \
+    CONFIG.TRANSLATION_MODE {2} \
+  ] $axi_protocol_convert_1
+
+
   # Create interface connections
+  connect_bd_intf_net -intf_net axi_dma_1 [get_bd_intf_ports axi_dma] [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
   connect_bd_intf_net -intf_net axi_protocol_convert_0_M_AXI [get_bd_intf_ports axi_lite] [get_bd_intf_pins axi_protocol_convert_0/M_AXI]
+  connect_bd_intf_net -intf_net axi_protocol_convert_1_M_AXI [get_bd_intf_ports axi_dmactrl] [get_bd_intf_pins axi_protocol_convert_1/M_AXI]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins processing_system7_0/M_AXI_GP0] [get_bd_intf_pins axi_protocol_convert_0/S_AXI]
+  connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP1 [get_bd_intf_pins processing_system7_0/M_AXI_GP1] [get_bd_intf_pins axi_protocol_convert_1/S_AXI]
 
   # Create port connections
-  connect_bd_net -net pl_clk_1 [get_bd_ports pl_clk] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins axi_protocol_convert_0/aclk]
-  connect_bd_net -net reset_1 [get_bd_ports reset_l] [get_bd_pins axi_protocol_convert_0/aresetn]
+  connect_bd_net -net axi_dma_clk_1 [get_bd_ports axi_dma_clk] [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] [get_bd_pins axi_protocol_convert_1/aclk] [get_bd_pins processing_system7_0/M_AXI_GP1_ACLK]
+  connect_bd_net -net axi_lite_clk_1 [get_bd_ports axi_lite_clk] [get_bd_pins axi_protocol_convert_0/aclk] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+  connect_bd_net -net axi_lite_dma_ctrl_rst_1 [get_bd_ports axi_lite_dma_ctrl_rst_l] [get_bd_pins axi_protocol_convert_1/aresetn]
+  connect_bd_net -net axi_lite_prot_conv_rst_1 [get_bd_ports axi_lite_prot_conv_rst_l] [get_bd_pins axi_protocol_convert_0/aresetn]
+  connect_bd_net -net dma_irq_1 [get_bd_ports dma_irq] [get_bd_pins processing_system7_0/IRQ_F2P]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_ports FCLK_CLK0_0]
+  connect_bd_net -net processing_system7_0_FCLK_CLK1 [get_bd_pins processing_system7_0/FCLK_CLK1] [get_bd_ports FCLK_CLK1_0]
+  connect_bd_net -net processing_system7_0_FCLK_CLK2 [get_bd_pins processing_system7_0/FCLK_CLK2] [get_bd_ports FCLK_CLK2_0]
+  connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N_0]
 
   # Create address segments
+  assign_bd_address -offset 0xB0000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_dmactrl/Reg] -force
   assign_bd_address -offset 0x40000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_lite/Reg] -force
+  assign_bd_address -offset 0x00000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces axi_dma] [get_bd_addr_segs processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM] -force
 
 
   # Restore current instance
   current_bd_instance $oldCurInst
 
+  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -414,6 +505,4 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
-
-common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
