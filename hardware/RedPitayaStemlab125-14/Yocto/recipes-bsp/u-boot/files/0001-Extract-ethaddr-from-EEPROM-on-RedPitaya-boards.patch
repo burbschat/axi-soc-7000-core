@@ -1,0 +1,204 @@
+From 8240b1b9a009484f8dd7997233f37793b7bb61c3 Mon Sep 17 00:00:00 2001
+From: Bela Urbschat <b.urbschat@tum.de>
+Date: Mon, 10 Aug 2026 17:19:57 +0900
+Subject: [PATCH] Extract ethaddr from EEPROM on RedPitaya boards
+
+---
+ board/xilinx/zynq/board.c | 168 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 168 insertions(+)
+
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index 04dee1b8269..07377656a5d 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -24,8 +24,21 @@
+ #include <asm/global_data.h>
+ #include <asm/arch/hardware.h>
+ #include <asm/arch/sys_proto.h>
++#include <dm.h>
++#include <i2c.h>
+ #include "../common/board.h"
+ 
++// Macros for extract MAC from EEPROM hack
++// The read window must contain the ethaddr=<mac> ASCII formatted data (uboot
++// environment) saved to the EEPROM at factory. The code searches for the
++// 'ethaddr=' string and reads the MAC address starting there. The window can
++// be as small/large as one desires as long as it contains the required data in
++// its entirety.
++#define EEPROM_CHIP 0x50        // EEPROM I2C bus address
++#define EEPROM_DATA_ADDR 0x1800 // Start of window containing the ASCII data
++#define EEPROM_DATA_LEN 0x200   // Length of window containing the ASCII data
++#define EEPROM_ALEN 2           // EEPROM address length (in bytes)
++
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+ #if !defined(CONFIG_XPL_BUILD) && defined(CONFIG_DEBUG_UART_BOARD_INIT)
+@@ -46,6 +59,147 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++static void dump_hex_ascii(const unsigned char *buf, size_t len)
++{
++    size_t i, j;
++
++    for (i = 0; i < len; i += 16) {
++        printf("%04zx: ", i);
++
++        /* Hex */
++        for (j = 0; j < 16; j++) {
++            if (i + j < len)
++                printf("%02x ", buf[i + j]);
++            else
++                printf("   ");
++        }
++
++        printf(" ");
++
++        /* ASCII */
++        for (j = 0; j < 16 && i + j < len; j++) {
++            unsigned char c = buf[i + j];
++
++            if (c >= 0x20 && c <= 0x7e)
++                printf("%c", c);
++            else
++                printf(".");
++        }
++
++        printf("\n");
++    }
++}
++
++static const char *find_env_value(unsigned char *buf, size_t len,
++                            const char *name)
++{
++    size_t name_len = strlen(name);
++    size_t i;
++
++    for (i = 0; i + name_len + 1 < len; i++) {
++        if (i > 0 && buf[i - 1] != '\0')
++            continue;
++
++        if (memcmp(&buf[i], name, name_len) == 0 &&
++            buf[i + name_len] == '=') {
++            return (char *)&buf[i + name_len + 1];
++        }
++    }
++
++    return NULL;
++}
++
++static int parse_mac(const char *str, uchar mac[6])
++{
++    int i;
++
++    for (i = 0; i < 6; i++) {
++        char *end;
++
++        mac[i] = simple_strtoul(str, &end, 16);
++
++        if (end == str)
++            return -EINVAL;
++
++        if (i < 5) {
++            if (*end != ':')
++                return -EINVAL;
++            str = end + 1;
++        } else {
++            if (*end != '\0')
++                return -EINVAL;
++        }
++    }
++
++    return 0;
++}
++
++static int set_ethaddr_from_eeprom_ascii(void)
++{
++    static unsigned char eeprom_data[EEPROM_DATA_LEN];
++    uchar mac[6];
++	int ret;
++
++#if CONFIG_IS_ENABLED(DM_I2C)
++    struct udevice *bus_dev;
++    struct udevice *chip_dev;
++
++    ret = uclass_get_device_by_seq(UCLASS_I2C, 0, &bus_dev);
++    if (ret) {
++        printf("uclass_get_device_by_seq failed: %d\n", ret);
++        return ret;
++    }
++    ret = dm_i2c_probe(bus_dev, EEPROM_CHIP, 0, &chip_dev);
++    if (ret) {
++        printf("dm_i2c_probe failed: %d\n", ret);
++        return ret;
++    }
++    ret = i2c_set_chip_offset_len(chip_dev, EEPROM_ALEN); // Set address length
++    if (ret) {
++        printf("i2c_set_chip_offset_len failed: %d\n", ret);
++        return ret;
++    }
++    ret = dm_i2c_read(chip_dev, EEPROM_DATA_ADDR, eeprom_data, EEPROM_DATA_LEN);
++    if (ret) {
++        printf("dm_i2c_read failed: %d\n", ret);
++        return ret;
++    }
++#else
++    ret = i2c_read(EEPROM_CHIP, EEPROM_DATA_ADDR, EEPROM_ALEN, eeprom_data, EEPROM_DATA_LEN);
++    if (ret) {
++        printf("i2c_read failed: %d\n", ret);
++        return ret;
++    }
++#endif
++    printf("Successfully read EEPROM\n");
++
++    // Dump the buffer to console for debug to check if the required data is in
++    // the window.
++    // dump_hex_ascii(eeprom_data, EEPROM_DATA_LEN);
++
++    // Search for the ethaddr=<address> portion of the data and extract
++    // addresss in ASCII format
++    char *ethaddr;
++    ethaddr = find_env_value(eeprom_data, EEPROM_DATA_LEN, "ethaddr");
++
++    // Check if ethaddr found and return if not.
++    if (!ethaddr) {
++        printf("ethaddr not found in EEPROM\n");
++        return -ENOENT;
++    }
++
++    ret = parse_mac(ethaddr, mac);
++    if (ret) {
++        printf("Failed to parse EEPROM ASCII formatted ethaddr: %s\n", ethaddr);
++        return ret;
++    }
++
++    printf("Successfully extracted ethaddr from factory EEPROM: %s\n", ethaddr);
++
++    // Actually set the ethaddr to extracted value
++    eth_env_set_enetaddr("ethaddr", mac);
++}
++
+ int board_late_init(void)
+ {
+ 	int env_targets_len = 0;
+@@ -108,6 +262,20 @@ int board_late_init(void)
+ 
+ 	env_set("boot_targets", new_targets);
+ 
++    // Keep existing ethaddr if already present and do not overwrite if set in
++    // current environment
++    int ret;
++    uchar mac[6];
++    printf("Attempting to extract ethaddr from EEPROM\n");
++    if (!eth_env_get_enetaddr("ethaddr", mac)) {
++        // Attempt to extract the mac address from ASCII formatted value
++        // available in the factory programmed EEPROM
++        ret = set_ethaddr_from_eeprom_ascii();
++
++        if (ret)
++            printf("Failed to extract and set ethaddr from factory EEPROM: %d\n", ret);
++    }
++
+ 	return board_late_init_xilinx();
+ }
+ 
