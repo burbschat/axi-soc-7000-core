@@ -1,4 +1,53 @@
 #include <dt-bindings/phy/phy.h>
+// Reference:
+// https://github.com/pavel-demin/red-pitaya-notes/blob/cc13b6aa6c375b149940492cfa906fe693e0f046/dts/common.dts
+
+// I2C attached EEPROM
+&i2c0 {
+    eeprom@50 {
+        compatible = "24c64";
+        size = <8192>;
+        pagesize = <32>;
+        reg = <0x50>;
+        // TODO: Contains the mac address?
+		/* mac_address: mac-address@9A { */
+		/* 	reg = <0x9A 6>; */
+		/* }; */
+    };
+};
+
+// User SPI (attached to pin headers)
+&spi1 {
+  spidev@0 {
+    compatible = "ltc2488";
+    reg = <0x0>;
+    spi-max-frequency = <10000000>;
+  };
+};
+
+// USB
+&usb0 {
+    dr_mode = "host";
+    usb-phy = <&usb_phy0>;
+    xlnx,phy-reset-gpio = <&gpio0 48 0>;
+};
+
+/ {
+  usb_phy0: phy0 {
+    #phy-cells = <0>;
+    compatible = "ulpi-phy";
+    reg = <0xe0002000 0x1000>;
+    view-port = <0x0170>;
+    drv-vbus;
+  };
+  pps {
+    compatible = "pps-gpio";
+    gpios = <&gpio0 54 0>;
+    capture-clear;
+  };
+};
+
+// Other
 / {
 	chosen {
         // For ramfs make sure to set root correctly (and package the root filesystem with the boot image -> see image.its)
