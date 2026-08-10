@@ -204,7 +204,7 @@ then
 
    # Create the project
    mkdir $proj_dir && cd $proj_dir
-   yes y | repo init -u https://github.com/Xilinx/yocto-manifests.git -b rel-v2025.1
+   yes y | repo init -u https://github.com/Xilinx/yocto-manifests.git -b rel-v2026.1
    repo sync
 
    # Write out a build stamp with the XSA path
@@ -376,11 +376,13 @@ if [[ $fsRamdisk == false ]]; then
     cp -rfL petalinux-image-minimal-zynq-user.tar.gz $rootfsDump
 fi
 
-# zynq-user (as opposed to zynqmp-user) gives both a uImage and zImage.
-# Perhaps we could directly use the uImage? For now use zImage and mkimage.
-# Create the image.ub
-cp -rfL zImage linux.bin
-gzip -k linux.bin
+# In 2025.1 release, the build produced a zImage which we could directly use
+# for mkimage below. In 2026.1 only the (previously already present) uImage is
+# produced. uImage has a (legacy) u-boot header, which we do not want here.
+# Thus dumpimage first to get the images contents, the gzip.
+# For 2025.1: cp -rfL zImage linux.bin
+dumpimage -T kernel -p 0 -o linux.bin uImage
+gzip -kf linux.bin
 if [[ $fsRamdisk == true ]]; then
     cp $axi_soc_7000_core/shared/Yocto/image.its ./image.its
 else
