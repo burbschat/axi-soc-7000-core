@@ -23,13 +23,14 @@ loadSource -lib axi_soc_7000_core -dir "$::DIR_PATH/rtl"
 # if {[package vcompare $current_vivado_version $scripts_vivado_version] < 0} {
 # which however requires manual modification whenever the script is
 # re-generated.
+set bdVer ""
 if { $::env(VIVADO_VERSION) >= 2023.1 } {
    set bdVer "2023.1"
+}
 # Could add else branches and maintain multiple block design scriptsif some
 # version ever introduces breaking changes.
 # } elseif  { $::env(VIVADO_VERSION) >= XXXX.Y } {
 #    set bdVer "XXXX.Y"
-}
 
 # loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.bd"
 loadBlockDesign -path "$::DIR_PATH/bd/${bdVer}/AxiSoc7000CpuCore.tcl"
