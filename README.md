@@ -5,5 +5,5 @@ Aims to be the 7series equivalent of
 [axi-soc-ultra-plus-core](https://github.com/slaclab/axi-soc-ultra-plus-core)
 (or [axi-soc-versal-core](https://github.com/slaclab/axi-soc-versal-core)).
 
-As of now only supports Vivado 2024.1 (reason: Only block design files included
-for this version, more will be added in the future).
+Should work with Vivado versions newer than 2023.1. Specifically known to work
+with 2023.1, 2024.1 and 2025.2.
