@@ -31,7 +31,7 @@ class RingBufferProcessor(pr.DataReceiver):
 
         # Configurable variables
         self._maxSize  = maxSize
-        self._timeBin  = (1.0E+6/sampleRate) # Units of us
+        self._timeBin  = (1.0E+9/sampleRate) # Units of ns
         self._maxAve   = maxAve
 
         # Init variables
@@ -145,6 +145,8 @@ class RingBufferProcessor(pr.DataReceiver):
             else:
                 # Get data from frame
                 waveformData = self.Data.value()[:].view(np.uint16)
+                # Subtract offset. One could also program the ADCs to give two's complement directly
+                waveformData = waveformData.astype(np.int32) - 2**16/2
                 self.WaveformData.set(waveformData,write=True)
 
                 # Check if live display
