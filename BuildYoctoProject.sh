@@ -1,13 +1,4 @@
 #!/bin/bash
-##############################################################################
-## This file is part of 'axi-soc-7000-core'.
-## It is subject to the license terms in the LICENSE.txt file found in the
-## top-level directory of this distribution and at:
-##    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
-## No part of 'axi-soc-7000-core', including this file,
-## may be copied, modified, propagated, or distributed except according to
-## the terms contained in the LICENSE.txt file.
-##############################################################################
 
 function show_help {
    echo "USAGE: $0 -p PATH -n NAME -h HWTYPE -x XSA [-l LANES] [-d DESTS] [-t TXCNT] [-r RXCNT] [-s BUFFSZ] [-c]"

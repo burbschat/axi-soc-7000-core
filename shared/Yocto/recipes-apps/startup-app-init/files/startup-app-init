@@ -1,13 +1,4 @@
 #!/bin/sh
-##############################################################################
-## This file is part of 'axi-soc-ultra-plus-core'.
-## It is subject to the license terms in the LICENSE.txt file found in the
-## top-level directory of this distribution and at:
-##    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
-## No part of 'axi-soc-ultra-plus-core', including this file,
-## may be copied, modified, propagated, or distributed except according to
-## the terms contained in the LICENSE.txt file.
-##############################################################################
 
 # Make the boot and app
 mkdir -p /boot
@@ -119,16 +110,16 @@ insmod /lib/modules/$(uname -r)/updates/axi_stream_dma.ko cfgTxCount0=@DMA_TX_BU
 ##############################################################################
 
 # Dump AxiVersion Status
-# /usr/bin/axiversiondump
+/usr/bin/axiversiondump
 
 # Check if user's runtime application exists
-# if [ -f "/app/runtimeApp" ]
-# then
-#    echo "Starting the user's custom runtime Application (/app/runtimeApp)"
-#    /app/runtimeApp
-# else
-#    echo "Starting the generic rogue TCP bridge Application"
-#    /usr/bin/roguetcpbridge --lane @DMA_NUM_LANES@ --tdest @DMA_NUM_DEST@
-# fi
+if [ -f "/app/runtimeApp" ]
+then
+   echo "Starting the user's custom runtime Application (/app/runtimeApp)"
+   /app/runtimeApp
+else
+   echo "Starting the generic rogue TCP bridge Application"
+   /usr/bin/roguetcpbridge --lane @DMA_NUM_LANES@ --tdest @DMA_NUM_DEST@
+fi
 
 ##############################################################################
