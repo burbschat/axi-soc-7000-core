@@ -146,7 +146,9 @@ class RingBufferProcessor(pr.DataReceiver):
                 # Get data from frame
                 waveformData = self.Data.value()[:].view(np.uint16)
                 # Subtract offset. One could also program the ADCs to give two's complement directly
-                waveformData = waveformData.astype(np.int32) - 2**16/2
+                # Actually, do not do this to make the values consistent with
+                # what we want to set for the trigger thresholds.
+                # waveformData = waveformData.astype(np.int32) - 2**16/2
                 self.WaveformData.set(waveformData,write=True)
 
                 # Check if live display
