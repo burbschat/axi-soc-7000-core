@@ -104,7 +104,7 @@ class RingBufferProcessor(pr.DataReceiver):
 
     def _start(self):
         super()._start()
-        return  # TODO: Return for now
+        return  # TODO: Return for now as we want to receive independent of the GUI
         if self._liveDisplay:
             self.RxEnable.set(value=False) # blow off data by default
         else:
